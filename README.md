@@ -3,7 +3,7 @@
 Remote is a lightweight native macOS connection manager for organizing SSH and RDP
 connections. The current build provides the connection library, hierarchical groups,
 reusable credentials backed by macOS Keychain, optional RD Gateway configuration, search,
-editing, and placeholder session tabs.
+editing, working external SSH sessions, and placeholder RDP session tabs.
 
 ## Requirements
 
@@ -44,10 +44,19 @@ macOS Security APIs. Items are device-local and available only while the Mac is 
 Deleting a credential profile or changing it to a non-password authentication method also
 deletes its Keychain item.
 
+## SSH
+
+`SSHService` delegates connections to `/usr/bin/ssh` and opens each session in Terminal. It
+supports the resolved username, custom port, SSH key path, ssh-agent, `~/.ssh/config`,
+ProxyJump, and server keepalive settings. A temporary executable launcher passes only
+shell-quoted connection options and deletes itself as soon as it starts. Passwords and
+Keychain references never enter the launcher, process arguments, or environment. Password
+profiles use OpenSSH's interactive Terminal prompt in this first working version.
+
 ## Protocol boundary
 
-`SSHService` and `RDPService` conform to a common session-launching interface. They remain
-protocol placeholders. SSH will delegate to macOS OpenSSH, and RDP will remain
-isolated behind the FreeRDP bridge. Each RDP connection may specify an RD Gateway host, port,
-and optional gateway credential profile; omitting the gateway profile reuses the connection's
-resolved credential profile.
+`SSHService` and `RDPService` conform to a common session-launching interface. The SSH
+implementation is isolated behind that interface so a future PTY-based tab can continue to
+use OpenSSH. RDP remains a placeholder isolated behind the FreeRDP bridge. Each RDP
+connection may specify an RD Gateway host, port, and optional gateway credential profile;
+omitting the gateway profile reuses the connection's resolved credential profile.

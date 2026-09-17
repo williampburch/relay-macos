@@ -12,8 +12,8 @@ enum SessionLaunchError: LocalizedError, Equatable {
 }
 
 /// The boundary between the app's session UI and a concrete protocol integration.
-/// Milestone 1 deliberately supplies placeholders; later milestones can replace them
-/// without changing connection storage or tab management.
+/// External launchers and future embedded sessions can be exchanged without changing
+/// connection storage or tab management.
 @MainActor
 protocol SessionLaunching {
     func connect(to connection: Connection, credential: CredentialProfile?) async throws

@@ -5,6 +5,8 @@ struct SessionView: View {
 
     @State private var status: SessionStatus = .idle
     @State private var showingEditor = false
+    @State private var showingConnectionError = false
+    @State private var connectionErrorMessage = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,10 +38,11 @@ struct SessionView: View {
                     Label("Edit", systemImage: "pencil")
                 }
 
-                Button(status == .idle ? "Connect" : "Disconnect") {
-                    status = status == .idle ? .preview : .idle
+                Button(connectButtonTitle) {
+                    connect()
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(status == .connecting)
             }
             .padding()
 
@@ -52,7 +55,7 @@ struct SessionView: View {
                     Image(systemName: connection.connectionProtocol == .ssh ? "terminal" : "rectangle.inset.filled.and.person.filled")
                         .font(.system(size: 48, weight: .light))
                         .foregroundStyle(.secondary)
-                    Text(status == .idle ? "Ready to connect" : "Session preview")
+                    Text(sessionTitle)
                         .font(.title2)
                     Text(placeholderMessage)
                         .foregroundStyle(.secondary)
@@ -66,31 +69,104 @@ struct SessionView: View {
         .sheet(isPresented: $showingEditor) {
             ConnectionEditorView(connection: connection)
         }
+        .alert("Unable to Connect", isPresented: $showingConnectionError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(connectionErrorMessage)
+        }
     }
 
     @ViewBuilder
     private var statusLabel: some View {
         HStack(spacing: 5) {
             Circle()
-                .fill(status == .idle ? Color.secondary : Color.orange)
+                .fill(statusColor)
                 .frame(width: 7, height: 7)
-            Text(status == .idle ? "Disconnected" : "Preview")
+            Text(status.displayName)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var connectButtonTitle: String {
+        switch status {
+        case .idle: "Connect"
+        case .connecting: "Connecting…"
+        case .launched: "Open Again"
+        }
+    }
+
+    private var statusColor: Color {
+        switch status {
+        case .idle: .secondary
+        case .connecting: .orange
+        case .launched: .green
+        }
+    }
+
+    private var sessionTitle: String {
+        switch status {
+        case .idle: "Ready to connect"
+        case .connecting: "Opening session"
+        case .launched:
+            connection.connectionProtocol == .ssh ? "SSH opened in Terminal" : "Session launched"
         }
     }
 
     private var placeholderMessage: String {
         switch connection.connectionProtocol {
         case .ssh:
-            "The macOS OpenSSH session will appear here when session launching is enabled."
+            if status == .launched {
+                "This first working version runs macOS OpenSSH in Terminal. Close the Terminal window when you are finished."
+            } else if connection.resolvedCredentialProfile()?.authenticationType == .password {
+                "Terminal will securely prompt for the SSH password. Remote never places it in a command or environment variable."
+            } else {
+                "The connection will use macOS OpenSSH and open in Terminal."
+            }
         case .rdp:
             "The FreeRDP desktop session will appear here when session launching is enabled."
         }
     }
+
+    private func connect() {
+        guard status != .connecting else { return }
+        status = .connecting
+
+        Task { @MainActor in
+            do {
+                let credential = connection.resolvedCredentialProfile()
+                switch connection.connectionProtocol {
+                case .ssh:
+                    try await SSHService.shared.connect(
+                        to: connection,
+                        credential: credential
+                    )
+                case .rdp:
+                    try await RDPService().connect(
+                        to: connection,
+                        credential: credential
+                    )
+                }
+                status = .launched
+            } catch {
+                status = .idle
+                connectionErrorMessage = error.localizedDescription
+                showingConnectionError = true
+            }
+        }
+    }
 }
 
-private enum SessionStatus {
+private enum SessionStatus: Equatable {
     case idle
-    case preview
+    case connecting
+    case launched
+
+    var displayName: String {
+        switch self {
+        case .idle: "Disconnected"
+        case .connecting: "Connecting"
+        case .launched: "Opened externally"
+        }
+    }
 }

@@ -24,6 +24,8 @@ struct ConnectionEditorView: View {
     @State private var rdpGatewayCredentialProfileID: UUID?
     @State private var notes: String
     @State private var isFavorite: Bool
+    @State private var sshKeepAliveInterval: Int
+    @State private var sshProxyJump: String
 
     init(connection: Connection?, initialGroupID: UUID? = nil) {
         self.connection = connection
@@ -44,12 +46,15 @@ struct ConnectionEditorView: View {
         )
         _notes = State(initialValue: connection?.notes ?? "")
         _isFavorite = State(initialValue: connection?.isFavorite ?? false)
+        _sshKeepAliveInterval = State(initialValue: connection?.settings.keepAliveInterval ?? 0)
+        _sshProxyJump = State(initialValue: connection?.settings.proxyJump ?? "")
     }
 
     private var canSave: Bool {
         !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (1...65_535).contains(port)
+            && (protocolType != .ssh || (0...86_400).contains(sshKeepAliveInterval))
             && (protocolType != .rdp || !usesRDPGateway || (
                 !rdpGatewayHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     && (1...65_535).contains(rdpGatewayPort)
@@ -96,6 +101,24 @@ struct ConnectionEditorView: View {
                     TextField("Username override", text: $usernameOverride)
                     if protocolType == .rdp {
                         TextField("Domain override", text: $domainOverride)
+                    }
+                }
+
+                if protocolType == .ssh {
+                    Section("SSH Options") {
+                        TextField(
+                            "ProxyJump host",
+                            text: $sshProxyJump,
+                            prompt: Text("bastion.example.com")
+                        )
+                        TextField(
+                            "Keepalive interval (seconds)",
+                            value: $sshKeepAliveInterval,
+                            format: .number.grouping(.never)
+                        )
+                        Text("Set the interval to 0 to use your OpenSSH configuration default.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -206,6 +229,13 @@ struct ConnectionEditorView: View {
             : nil
         target.notes = nilIfEmpty(notes)
         target.isFavorite = isFavorite
+
+        var settings = target.settings
+        settings.keepAliveInterval = protocolType == .ssh && sshKeepAliveInterval > 0
+            ? sshKeepAliveInterval
+            : nil
+        settings.proxyJump = protocolType == .ssh ? nilIfEmpty(sshProxyJump) : nil
+        target.settings = settings
 
         if connection == nil { modelContext.insert(target) }
         dismiss()
