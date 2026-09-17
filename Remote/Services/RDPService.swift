@@ -12,6 +12,7 @@ enum RDPLaunchError: LocalizedError, Equatable {
     case invalidGatewayValue
     case passwordPromptCancelled
     case sessionNotRunning
+    case sessionEnded(exitStatus: Int32, details: String)
     case windowActivationFailed
     case launchFailed(String)
 
@@ -35,6 +36,9 @@ enum RDPLaunchError: LocalizedError, Equatable {
             return "The password prompt was cancelled."
         case .sessionNotRunning:
             return "The FreeRDP session is no longer running. Connect again to start a new session."
+        case .sessionEnded(let exitStatus, let details):
+            let diagnostic = details.isEmpty ? "No additional diagnostic was reported." : details
+            return "FreeRDP ended during connection setup (exit code \(exitStatus)).\n\n\(diagnostic)"
         case .windowActivationFailed:
             return "The FreeRDP window could not be brought forward. Look for sdl-freerdp in the Dock or use Command-Tab."
         case .launchFailed(let message):
@@ -46,6 +50,53 @@ enum RDPLaunchError: LocalizedError, Equatable {
 struct RDPLaunchPlan: Equatable {
     let arguments: [String]
     let needsGatewayPassword: Bool
+}
+
+struct RDPSessionFailure: Equatable {
+    let exitStatus: Int32
+    let details: String
+}
+
+enum RDPDiagnosticSanitizer {
+    static func sanitize(_ output: String, redacting sensitiveValues: [String]) -> String {
+        let noteworthyLines = output
+            .components(separatedBy: .newlines)
+            .filter { line in
+                let lowercased = line.lowercased()
+                return lowercased.contains("error")
+                    || lowercased.contains("warn")
+                    || lowercased.contains("fail")
+                    || lowercased.contains("errconnect")
+            }
+
+        var sanitized = noteworthyLines.suffix(12).joined(separator: "\n")
+        for value in sensitiveValues
+            .filter({ !$0.isEmpty })
+            .sorted(by: { $0.count > $1.count }) {
+            sanitized = sanitized.replacingOccurrences(
+                of: value,
+                with: "[redacted]",
+                options: [.caseInsensitive]
+            )
+        }
+
+        let secretPatterns = [
+            #"(?i)(password|passwd|token|authorization|cookie|secret)(\s*[:=]\s*)[^\s,;]+"#,
+            #"(?i)(^|[\s,])/??(?:p|gp):[^\s,]+"#
+        ]
+        for pattern in secretPatterns {
+            sanitized = sanitized.replacingOccurrences(
+                of: pattern,
+                with: "$1[redacted]",
+                options: .regularExpression
+            )
+        }
+
+        if sanitized.count > 6_000 {
+            sanitized = String(sanitized.suffix(6_000))
+        }
+        return sanitized.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 enum RDPCommandBuilder {
@@ -70,6 +121,7 @@ enum RDPCommandBuilder {
             "/v:\(endpoint(host: host, port: connection.port))",
             "/u:\(username)",
             "/from-stdin:force",
+            "/log-level:WARN",
             "/cert:tofu",
             "+clipboard",
             "+dynamic-resolution",
@@ -206,7 +258,9 @@ final class RDPService: RDPServicing, ObservableObject {
     private let passwordPrompt: RDPPasswordPrompting
     private let fileManager: FileManager
     private var processes: [UUID: Process] = [:]
+    private var processDiagnostics: [UUID: String] = [:]
     @Published private(set) var activeConnectionIDs: Set<UUID> = []
+    @Published private(set) var sessionFailures: [UUID: RDPSessionFailure] = [:]
 
     init(
         keychainService: KeychainService = .shared,
@@ -256,13 +310,45 @@ final class RDPService: RDPServicing, ObservableObject {
         process.executableURL = executableURL
         process.arguments = plan.arguments
         let inputPipe = Pipe()
+        let diagnosticPipe = Pipe()
         process.standardInput = inputPipe
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
+        process.standardOutput = diagnosticPipe
+        process.standardError = diagnosticPipe
+        processDiagnostics[connectionID] = ""
+        sessionFailures.removeValue(forKey: connectionID)
+
+        let sensitiveValues = diagnosticRedactionValues(
+            connection: connection,
+            credential: credential,
+            gatewayCredential: gatewayCredential
+        )
+        diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty else {
+                handle.readabilityHandler = nil
+                return
+            }
+            guard let output = String(data: data, encoding: .utf8) else { return }
+            let sanitized = RDPDiagnosticSanitizer.sanitize(
+                output,
+                redacting: sensitiveValues
+            )
+            guard !sanitized.isEmpty else { return }
+            Task { @MainActor in
+                self?.appendDiagnostic(sanitized, connectionID: connectionID)
+            }
+        }
         process.terminationHandler = { [weak self] finishedProcess in
             Task { @MainActor in
                 guard self?.processes[connectionID] === finishedProcess else { return }
+                try? await Task.sleep(for: .milliseconds(150))
+                diagnosticPipe.fileHandleForReading.readabilityHandler = nil
                 self?.processes.removeValue(forKey: connectionID)
+                let details = self?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
+                self?.sessionFailures[connectionID] = RDPSessionFailure(
+                    exitStatus: finishedProcess.terminationStatus,
+                    details: details
+                )
                 self?.activeConnectionIDs.remove(connectionID)
             }
         }
@@ -283,7 +369,9 @@ final class RDPService: RDPServicing, ObservableObject {
             credentialData.resetBytes(in: credentialData.startIndex..<credentialData.endIndex)
         } catch {
             try? inputPipe.fileHandleForWriting.close()
+            diagnosticPipe.fileHandleForReading.readabilityHandler = nil
             processes.removeValue(forKey: connectionID)
+            processDiagnostics.removeValue(forKey: connectionID)
             activeConnectionIDs.remove(connectionID)
             if process.isRunning { process.terminate() }
             throw RDPLaunchError.launchFailed(error.localizedDescription)
@@ -309,6 +397,8 @@ final class RDPService: RDPServicing, ObservableObject {
 
     func disconnect(connectionID: UUID) async {
         activeConnectionIDs.remove(connectionID)
+        sessionFailures.removeValue(forKey: connectionID)
+        processDiagnostics.removeValue(forKey: connectionID)
         guard let process = processes.removeValue(forKey: connectionID) else { return }
         if process.isRunning {
             process.terminate()
@@ -318,6 +408,8 @@ final class RDPService: RDPServicing, ObservableObject {
     func disconnectAll() {
         let runningProcesses = processes.values
         processes.removeAll()
+        processDiagnostics.removeAll()
+        sessionFailures.removeAll()
         activeConnectionIDs.removeAll()
         for process in runningProcesses where process.isRunning {
             process.terminate()
@@ -352,6 +444,29 @@ final class RDPService: RDPServicing, ObservableObject {
                 profileName: profile?.name ?? "Credential"
             )
         }
+    }
+
+    private func appendDiagnostic(_ diagnostic: String, connectionID: UUID) {
+        let current = processDiagnostics[connectionID] ?? ""
+        let combined = current.isEmpty ? diagnostic : "\(current)\n\(diagnostic)"
+        processDiagnostics[connectionID] = String(combined.suffix(6_000))
+    }
+
+    private func diagnosticRedactionValues(
+        connection: Connection,
+        credential: CredentialProfile?,
+        gatewayCredential: CredentialProfile?
+    ) -> [String] {
+        [
+            connection.host,
+            connection.rdpGatewayHost,
+            connection.resolvedUsername(),
+            connection.resolvedDomain(),
+            credential?.username,
+            credential?.domain,
+            gatewayCredential?.username,
+            gatewayCredential?.domain
+        ].compactMap { $0 }
     }
 
     private func freeRDPExecutableURL() throws -> URL {

@@ -27,6 +27,7 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertTrue(plan.arguments.contains("/u:administrator"))
         XCTAssertTrue(plan.arguments.contains("/d:CONTOSO"))
         XCTAssertTrue(plan.arguments.contains("/from-stdin:force"))
+        XCTAssertTrue(plan.arguments.contains("/log-level:WARN"))
         XCTAssertTrue(plan.arguments.contains("/cert:tofu"))
         XCTAssertTrue(plan.arguments.contains("+clipboard"))
         XCTAssertTrue(plan.arguments.contains("+dynamic-resolution"))
@@ -159,5 +160,25 @@ final class RDPCommandBuilderTests: XCTestCase {
         ) { error in
             XCTAssertEqual(error as? RDPLaunchError, .invalidGatewayValue)
         }
+    }
+
+    func testDiagnosticSanitizerRedactsConnectionIdentityAndSecrets() {
+        let diagnostic = """
+        [ERROR] gateway.example.test failed for CONTOSO\\operator
+        [WARN] authorization=BearerValue token:TopSecret password=hunter2
+        """
+
+        let result = RDPDiagnosticSanitizer.sanitize(
+            diagnostic,
+            redacting: ["gateway.example.test", "CONTOSO", "operator"]
+        )
+
+        XCTAssertFalse(result.contains("gateway.example.test"))
+        XCTAssertFalse(result.contains("CONTOSO"))
+        XCTAssertFalse(result.contains("operator"))
+        XCTAssertFalse(result.contains("BearerValue"))
+        XCTAssertFalse(result.contains("TopSecret"))
+        XCTAssertFalse(result.contains("hunter2"))
+        XCTAssertTrue(result.contains("[redacted]"))
     }
 }

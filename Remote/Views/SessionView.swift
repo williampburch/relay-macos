@@ -92,6 +92,9 @@ struct SessionView: View {
                   status == .launched,
                   !activeConnectionIDs.contains(connection.id) else { return }
             status = .idle
+            if let failure = rdpService.sessionFailures[connection.id] {
+                presentRDPFailure(failure)
+            }
         }
     }
 
@@ -171,6 +174,12 @@ struct SessionView: View {
                         to: connection,
                         credential: credential
                     )
+                    if let failure = rdpService.sessionFailures[connection.id] {
+                        throw RDPLaunchError.sessionEnded(
+                            exitStatus: failure.exitStatus,
+                            details: failure.details
+                        )
+                    }
                     guard rdpService.activeConnectionIDs.contains(connection.id) else {
                         throw RDPLaunchError.sessionNotRunning
                     }
@@ -200,6 +209,14 @@ struct SessionView: View {
             await rdpService.disconnect(connectionID: connection.id)
             status = .idle
         }
+    }
+
+    private func presentRDPFailure(_ failure: RDPSessionFailure) {
+        connectionErrorMessage = RDPLaunchError.sessionEnded(
+            exitStatus: failure.exitStatus,
+            details: failure.details
+        ).localizedDescription
+        showingConnectionError = true
     }
 }
 
