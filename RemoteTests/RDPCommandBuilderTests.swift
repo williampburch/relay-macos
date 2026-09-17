@@ -1,4 +1,5 @@
 import XCTest
+import Darwin
 @testable import Remote
 
 final class RDPCommandBuilderTests: XCTestCase {
@@ -180,5 +181,15 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertFalse(result.contains("TopSecret"))
         XCTAssertFalse(result.contains("hunter2"))
         XCTAssertTrue(result.contains("[redacted]"))
+    }
+
+    func testCredentialTransportProvidesARealTerminal() throws {
+        let terminal = try RDPPseudoTerminal()
+        defer {
+            try? terminal.master.close()
+            try? terminal.slave.close()
+        }
+
+        XCTAssertEqual(isatty(terminal.slave.fileDescriptor), 1)
     }
 }
