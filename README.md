@@ -3,7 +3,7 @@
 Remote is a lightweight native macOS connection manager for organizing SSH and RDP
 connections. The current build provides the connection library, hierarchical groups,
 reusable credentials backed by macOS Keychain, optional RD Gateway configuration, search,
-editing, working external SSH sessions, and placeholder RDP session tabs.
+editing, working external SSH sessions, and a FreeRDP-based RDP prototype.
 
 ## Requirements
 
@@ -28,8 +28,7 @@ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 sudo xcodebuild -runFirstLaunch
 ```
 
-FreeRDP is not required to work on Milestones 1–3. Install its Homebrew package before the
-RDP prototype milestone:
+The RDP prototype requires FreeRDP's Homebrew package:
 
 ```sh
 brew install freerdp
@@ -53,10 +52,20 @@ shell-quoted connection options and deletes itself as soon as it starts. Passwor
 Keychain references never enter the launcher, process arguments, or environment. Password
 profiles use OpenSSH's interactive Terminal prompt in this first working version.
 
+## RDP
+
+`RDPService` launches Homebrew's `sdl-freerdp` in a separate native window. The prototype
+supports username/password/domain authentication, prompt-every-time profiles, clipboard,
+dynamic resizing, fullscreen, custom desktop dimensions, certificate trust-on-first-use,
+and an optional RD Gateway with either shared or separate credentials. Passwords are read
+from Keychain and written to FreeRDP's standard input; they never appear in process arguments,
+temporary files, logs, or environment variables. Closing a Remote RDP tab or choosing
+Disconnect terminates the associated FreeRDP process.
+
 ## Protocol boundary
 
 `SSHService` and `RDPService` conform to a common session-launching interface. The SSH
 implementation is isolated behind that interface so a future PTY-based tab can continue to
-use OpenSSH. RDP remains a placeholder isolated behind the FreeRDP bridge. Each RDP
-connection may specify an RD Gateway host, port, and optional gateway credential profile;
-omitting the gateway profile reuses the connection's resolved credential profile.
+use OpenSSH. FreeRDP process management and argument construction remain isolated behind
+`RDPService` so an embedded renderer can replace the external SDL window without changing
+the connection, credential, or tab models.

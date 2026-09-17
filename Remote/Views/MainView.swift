@@ -100,6 +100,11 @@ struct MainView: View {
 
     private func closeTab(_ id: UUID) {
         guard let index = openConnectionIDs.firstIndex(of: id) else { return }
+        if connections.first(where: { $0.id == id })?.connectionProtocol == .rdp {
+            Task { @MainActor in
+                await RDPService.shared.disconnect(connectionID: id)
+            }
+        }
         let wasSelected = selectedConnectionID == id
         openConnectionIDs.remove(at: index)
 

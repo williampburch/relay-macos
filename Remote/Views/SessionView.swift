@@ -92,7 +92,8 @@ struct SessionView: View {
         switch status {
         case .idle: "Connect"
         case .connecting: "Connecting…"
-        case .launched: "Open Again"
+        case .launched:
+            connection.connectionProtocol == .rdp ? "Disconnect" : "Open Again"
         }
     }
 
@@ -124,12 +125,26 @@ struct SessionView: View {
                 "The connection will use macOS OpenSSH and open in Terminal."
             }
         case .rdp:
-            "The FreeRDP desktop session will appear here when session launching is enabled."
+            if status == .launched {
+                "The FreeRDP desktop is open in its own window. Use Disconnect here or close that window when finished."
+            } else {
+                "The connection will open in a FreeRDP window with clipboard and dynamic resizing enabled."
+            }
         }
     }
 
     private func connect() {
         guard status != .connecting else { return }
+
+        if status == .launched, connection.connectionProtocol == .rdp {
+            status = .connecting
+            Task { @MainActor in
+                await RDPService.shared.disconnect(connectionID: connection.id)
+                status = .idle
+            }
+            return
+        }
+
         status = .connecting
 
         Task { @MainActor in
@@ -142,7 +157,7 @@ struct SessionView: View {
                         credential: credential
                     )
                 case .rdp:
-                    try await RDPService().connect(
+                    try await RDPService.shared.connect(
                         to: connection,
                         credential: credential
                     )

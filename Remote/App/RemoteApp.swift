@@ -1,8 +1,18 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
+@MainActor
+final class RemoteApplicationDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillTerminate(_ notification: Notification) {
+        RDPService.shared.disconnectAll()
+    }
+}
+
 @main
 struct RemoteApp: App {
+    @NSApplicationDelegateAdaptor(RemoteApplicationDelegate.self) private var appDelegate
+
     private let modelContainer: ModelContainer
 
     init() {

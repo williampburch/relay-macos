@@ -26,6 +26,10 @@ struct ConnectionEditorView: View {
     @State private var isFavorite: Bool
     @State private var sshKeepAliveInterval: Int
     @State private var sshProxyJump: String
+    @State private var rdpOpensInFullScreen: Bool
+    @State private var rdpUsesCustomSize: Bool
+    @State private var rdpDesktopWidth: Int
+    @State private var rdpDesktopHeight: Int
 
     init(connection: Connection?, initialGroupID: UUID? = nil) {
         self.connection = connection
@@ -48,6 +52,10 @@ struct ConnectionEditorView: View {
         _isFavorite = State(initialValue: connection?.isFavorite ?? false)
         _sshKeepAliveInterval = State(initialValue: connection?.settings.keepAliveInterval ?? 0)
         _sshProxyJump = State(initialValue: connection?.settings.proxyJump ?? "")
+        _rdpOpensInFullScreen = State(initialValue: connection?.settings.opensInFullScreen ?? false)
+        _rdpUsesCustomSize = State(initialValue: connection?.settings.desktopWidth != nil)
+        _rdpDesktopWidth = State(initialValue: connection?.settings.desktopWidth ?? 1440)
+        _rdpDesktopHeight = State(initialValue: connection?.settings.desktopHeight ?? 900)
     }
 
     private var canSave: Bool {
@@ -55,6 +63,10 @@ struct ConnectionEditorView: View {
             && !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (1...65_535).contains(port)
             && (protocolType != .ssh || (0...86_400).contains(sshKeepAliveInterval))
+            && (protocolType != .rdp || rdpOpensInFullScreen || !rdpUsesCustomSize || (
+                (640...16_384).contains(rdpDesktopWidth)
+                    && (480...16_384).contains(rdpDesktopHeight)
+            ))
             && (protocolType != .rdp || !usesRDPGateway || (
                 !rdpGatewayHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     && (1...65_535).contains(rdpGatewayPort)
@@ -123,6 +135,25 @@ struct ConnectionEditorView: View {
                 }
 
                 if protocolType == .rdp {
+                    Section("Display") {
+                        Toggle("Open in full screen", isOn: $rdpOpensInFullScreen)
+                        if !rdpOpensInFullScreen {
+                            Toggle("Use custom desktop size", isOn: $rdpUsesCustomSize)
+                            if rdpUsesCustomSize {
+                                TextField(
+                                    "Width",
+                                    value: $rdpDesktopWidth,
+                                    format: .number.grouping(.never)
+                                )
+                                TextField(
+                                    "Height",
+                                    value: $rdpDesktopHeight,
+                                    format: .number.grouping(.never)
+                                )
+                            }
+                        }
+                    }
+
                     Section("RD Gateway") {
                         Toggle("Use RD Gateway", isOn: $usesRDPGateway)
 
@@ -235,6 +266,13 @@ struct ConnectionEditorView: View {
             ? sshKeepAliveInterval
             : nil
         settings.proxyJump = protocolType == .ssh ? nilIfEmpty(sshProxyJump) : nil
+        settings.opensInFullScreen = protocolType == .rdp && rdpOpensInFullScreen
+        settings.desktopWidth = protocolType == .rdp && rdpUsesCustomSize && !rdpOpensInFullScreen
+            ? rdpDesktopWidth
+            : nil
+        settings.desktopHeight = protocolType == .rdp && rdpUsesCustomSize && !rdpOpensInFullScreen
+            ? rdpDesktopHeight
+            : nil
         target.settings = settings
 
         if connection == nil { modelContext.insert(target) }
