@@ -16,6 +16,7 @@ let package = Package(
             path: "Remote",
             exclude: [
                 "RDP/FreeRDPBridge/README.md",
+                "Relay-Info.plist",
                 "Resources"
             ]
         ),

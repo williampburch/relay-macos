@@ -400,7 +400,8 @@ final class RDPService: RDPServicing, ObservableObject {
             gatewayCredential: gatewayCredential,
             passwords: [serverPassword, gatewayPassword].compactMap { $0 }
         )
-        diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        let service = self
+        diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak service] handle in
             let data = handle.availableData
             guard !data.isEmpty else {
                 handle.readabilityHandler = nil
@@ -413,29 +414,29 @@ final class RDPService: RDPServicing, ObservableObject {
             )
             guard !sanitized.isEmpty else { return }
             Task { @MainActor in
-                self?.appendDiagnostic(sanitized, connectionID: connectionID)
+                service?.appendDiagnostic(sanitized, connectionID: connectionID)
             }
         }
-        process.terminationHandler = { [weak self] finishedProcess in
+        process.terminationHandler = { [weak service] finishedProcess in
             Task { @MainActor in
-                guard self?.processes[connectionID] === finishedProcess else { return }
+                guard service?.processes[connectionID] === finishedProcess else { return }
                 try? await Task.sleep(for: .milliseconds(150))
                 diagnosticPipe.fileHandleForReading.readabilityHandler = nil
-                self?.processes.removeValue(forKey: connectionID)
-                let details = self?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
+                service?.processes.removeValue(forKey: connectionID)
+                let details = service?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
                 let exitStatus = finishedProcess.terminationStatus
                 if RDPFailureInterpreter.isExpectedTermination(
                     exitStatus: exitStatus,
                     details: details
                 ) {
-                    self?.sessionFailures.removeValue(forKey: connectionID)
+                    service?.sessionFailures.removeValue(forKey: connectionID)
                 } else {
-                    self?.sessionFailures[connectionID] = RDPSessionFailure(
+                    service?.sessionFailures[connectionID] = RDPSessionFailure(
                         exitStatus: exitStatus,
                         details: details
                     )
                 }
-                self?.activeConnectionIDs.remove(connectionID)
+                service?.activeConnectionIDs.remove(connectionID)
             }
         }
 
