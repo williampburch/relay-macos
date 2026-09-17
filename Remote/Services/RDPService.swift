@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import Darwin
 import Foundation
 
 enum RDPLaunchError: LocalizedError, Equatable {
@@ -12,7 +11,7 @@ enum RDPLaunchError: LocalizedError, Equatable {
     case unsupportedAuthentication(profileName: String)
     case invalidGatewayValue
     case passwordPromptCancelled
-    case pseudoTerminalCreationFailed(String)
+    case unsupportedPasswordCharacters
     case sessionNotRunning
     case sessionEnded(exitStatus: Int32, details: String)
     case windowActivationFailed
@@ -36,8 +35,8 @@ enum RDPLaunchError: LocalizedError, Equatable {
             return "RD Gateway host, username, and domain values cannot contain commas or line breaks."
         case .passwordPromptCancelled:
             return "The password prompt was cancelled."
-        case .pseudoTerminalCreationFailed(let message):
-            return "A private terminal for FreeRDP credentials could not be created: \(message)"
+        case .unsupportedPasswordCharacters:
+            return "FreeRDP cannot securely receive a password containing a line break, or an RD Gateway password containing a comma."
         case .sessionNotRunning:
             return "The FreeRDP session is no longer running. Connect again to start a new session."
         case .sessionEnded(let exitStatus, let details):
@@ -59,35 +58,6 @@ struct RDPLaunchPlan: Equatable {
 struct RDPSessionFailure: Equatable {
     let exitStatus: Int32
     let details: String
-}
-
-struct RDPPseudoTerminal {
-    let master: FileHandle
-    let slave: FileHandle
-
-    init() throws {
-        var masterDescriptor: Int32 = -1
-        var slaveDescriptor: Int32 = -1
-        guard openpty(
-            &masterDescriptor,
-            &slaveDescriptor,
-            nil,
-            nil,
-            nil
-        ) == 0 else {
-            let message = String(cString: strerror(errno))
-            throw RDPLaunchError.pseudoTerminalCreationFailed(message)
-        }
-
-        master = FileHandle(
-            fileDescriptor: masterDescriptor,
-            closeOnDealloc: true
-        )
-        slave = FileHandle(
-            fileDescriptor: slaveDescriptor,
-            closeOnDealloc: true
-        )
-    }
 }
 
 enum RDPDiagnosticSanitizer {
@@ -132,6 +102,38 @@ enum RDPDiagnosticSanitizer {
     }
 }
 
+enum RDPArgumentStreamBuilder {
+    static let processArguments = ["/args-from:stdin"]
+
+    static func makeInput(
+        plan: RDPLaunchPlan,
+        serverPassword: String,
+        gatewayPassword: String?
+    ) throws -> Data {
+        guard !serverPassword.contains("\n"),
+              !serverPassword.contains("\r") else {
+            throw RDPLaunchError.unsupportedPasswordCharacters
+        }
+        if let gatewayPassword {
+            guard !gatewayPassword.contains("\n"),
+                  !gatewayPassword.contains("\r"),
+                  !gatewayPassword.contains(",") else {
+                throw RDPLaunchError.unsupportedPasswordCharacters
+            }
+        }
+
+        var arguments = plan.arguments
+        arguments.append("/p:\(serverPassword)")
+
+        if let gatewayPassword,
+           let gatewayIndex = arguments.firstIndex(where: { $0.hasPrefix("/gateway:") }) {
+            arguments[gatewayIndex].append(",p:\(gatewayPassword)")
+        }
+
+        return Data((arguments.joined(separator: "\n") + "\n").utf8)
+    }
+}
+
 enum RDPCommandBuilder {
     static func makePlan(
         connection: Connection,
@@ -153,7 +155,6 @@ enum RDPCommandBuilder {
         var arguments = [
             "/v:\(endpoint(host: host, port: connection.port))",
             "/u:\(username)",
-            "/from-stdin:force",
             "/log-level:WARN",
             "/cert:tofu",
             "+clipboard",
@@ -291,7 +292,6 @@ final class RDPService: RDPServicing, ObservableObject {
     private let passwordPrompt: RDPPasswordPrompting
     private let fileManager: FileManager
     private var processes: [UUID: Process] = [:]
-    private var processInputHandles: [UUID: FileHandle] = [:]
     private var processDiagnostics: [UUID: String] = [:]
     @Published private(set) var activeConnectionIDs: Set<UUID> = []
     @Published private(set) var sessionFailures: [UUID: RDPSessionFailure] = [:]
@@ -340,12 +340,21 @@ final class RDPService: RDPServicing, ObservableObject {
         await disconnect(connectionID: connection.id)
 
         let connectionID = connection.id
+        var argumentInput = try RDPArgumentStreamBuilder.makeInput(
+            plan: plan,
+            serverPassword: serverPassword,
+            gatewayPassword: gatewayPassword
+        )
+        defer {
+            argumentInput.resetBytes(in: argumentInput.startIndex..<argumentInput.endIndex)
+        }
+
         let process = Process()
         process.executableURL = executableURL
-        process.arguments = plan.arguments
-        let credentialTerminal = try RDPPseudoTerminal()
+        process.arguments = RDPArgumentStreamBuilder.processArguments
+        let argumentPipe = Pipe()
         let diagnosticPipe = Pipe()
-        process.standardInput = credentialTerminal.slave
+        process.standardInput = argumentPipe
         process.standardOutput = diagnosticPipe
         process.standardError = diagnosticPipe
         processDiagnostics[connectionID] = ""
@@ -354,7 +363,8 @@ final class RDPService: RDPServicing, ObservableObject {
         let sensitiveValues = diagnosticRedactionValues(
             connection: connection,
             credential: credential,
-            gatewayCredential: gatewayCredential
+            gatewayCredential: gatewayCredential,
+            passwords: [serverPassword, gatewayPassword].compactMap { $0 }
         )
         diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
@@ -378,7 +388,6 @@ final class RDPService: RDPServicing, ObservableObject {
                 try? await Task.sleep(for: .milliseconds(150))
                 diagnosticPipe.fileHandleForReading.readabilityHandler = nil
                 self?.processes.removeValue(forKey: connectionID)
-                try? self?.processInputHandles.removeValue(forKey: connectionID)?.close()
                 let details = self?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
                 self?.sessionFailures[connectionID] = RDPSessionFailure(
                     exitStatus: finishedProcess.terminationStatus,
@@ -391,24 +400,13 @@ final class RDPService: RDPServicing, ObservableObject {
         do {
             processes[connectionID] = process
             try process.run()
-            try credentialTerminal.slave.close()
-            processInputHandles[connectionID] = credentialTerminal.master
             activeConnectionIDs.insert(connectionID)
-
-            var credentialData = Data(serverPassword.utf8)
-            credentialData.append(0x0A)
-            if let gatewayPassword {
-                credentialData.append(contentsOf: gatewayPassword.utf8)
-                credentialData.append(0x0A)
-            }
-            try credentialTerminal.master.write(contentsOf: credentialData)
-            credentialData.resetBytes(in: credentialData.startIndex..<credentialData.endIndex)
+            try argumentPipe.fileHandleForWriting.write(contentsOf: argumentInput)
+            try argumentPipe.fileHandleForWriting.close()
         } catch {
-            try? credentialTerminal.master.close()
-            try? credentialTerminal.slave.close()
+            try? argumentPipe.fileHandleForWriting.close()
             diagnosticPipe.fileHandleForReading.readabilityHandler = nil
             processes.removeValue(forKey: connectionID)
-            processInputHandles.removeValue(forKey: connectionID)
             processDiagnostics.removeValue(forKey: connectionID)
             activeConnectionIDs.remove(connectionID)
             if process.isRunning { process.terminate() }
@@ -437,7 +435,6 @@ final class RDPService: RDPServicing, ObservableObject {
         activeConnectionIDs.remove(connectionID)
         sessionFailures.removeValue(forKey: connectionID)
         processDiagnostics.removeValue(forKey: connectionID)
-        try? processInputHandles.removeValue(forKey: connectionID)?.close()
         guard let process = processes.removeValue(forKey: connectionID) else { return }
         if process.isRunning {
             process.terminate()
@@ -447,16 +444,11 @@ final class RDPService: RDPServicing, ObservableObject {
     func disconnectAll() {
         let runningProcesses = processes.values
         processes.removeAll()
-        let inputHandles = processInputHandles.values
-        processInputHandles.removeAll()
         processDiagnostics.removeAll()
         sessionFailures.removeAll()
         activeConnectionIDs.removeAll()
         for process in runningProcesses where process.isRunning {
             process.terminate()
-        }
-        for handle in inputHandles {
-            try? handle.close()
         }
     }
 
@@ -499,9 +491,10 @@ final class RDPService: RDPServicing, ObservableObject {
     private func diagnosticRedactionValues(
         connection: Connection,
         credential: CredentialProfile?,
-        gatewayCredential: CredentialProfile?
+        gatewayCredential: CredentialProfile?,
+        passwords: [String]
     ) -> [String] {
-        [
+        passwords + ([
             connection.host,
             connection.rdpGatewayHost,
             connection.resolvedUsername(),
@@ -510,7 +503,7 @@ final class RDPService: RDPServicing, ObservableObject {
             credential?.domain,
             gatewayCredential?.username,
             gatewayCredential?.domain
-        ].compactMap { $0 }
+        ].compactMap { $0 })
     }
 
     private func freeRDPExecutableURL() throws -> URL {

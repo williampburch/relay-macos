@@ -58,7 +58,8 @@ profiles use OpenSSH's interactive Terminal prompt in this first working version
 supports username/password/domain authentication, prompt-every-time profiles, clipboard,
 dynamic resizing, fullscreen, custom desktop dimensions, certificate trust-on-first-use,
 and an optional RD Gateway with either shared or separate credentials. Passwords are read
-from Keychain and written through a private pseudo-terminal to FreeRDP's standard input; they never appear in process arguments,
+from Keychain and sent through an anonymous standard-input pipe using FreeRDP's
+`/args-from:stdin` interface; they never appear in operating-system process arguments,
 temporary files, logs, or environment variables. Closing a Remote RDP tab or choosing
 Disconnect terminates the associated FreeRDP process. While FreeRDP is running, **Show
 Window** brings its windows forward after an external authentication or 2FA flow minimizes

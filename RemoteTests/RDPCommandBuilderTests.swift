@@ -1,5 +1,4 @@
 import XCTest
-import Darwin
 @testable import Remote
 
 final class RDPCommandBuilderTests: XCTestCase {
@@ -27,7 +26,8 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertTrue(plan.arguments.contains("/v:dc01.example.test:3389"))
         XCTAssertTrue(plan.arguments.contains("/u:administrator"))
         XCTAssertTrue(plan.arguments.contains("/d:CONTOSO"))
-        XCTAssertTrue(plan.arguments.contains("/from-stdin:force"))
+        XCTAssertFalse(plan.arguments.contains("/from-stdin:force"))
+        XCTAssertEqual(RDPArgumentStreamBuilder.processArguments, ["/args-from:stdin"])
         XCTAssertTrue(plan.arguments.contains("/log-level:WARN"))
         XCTAssertTrue(plan.arguments.contains("/cert:tofu"))
         XCTAssertTrue(plan.arguments.contains("+clipboard"))
@@ -183,13 +183,69 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertTrue(result.contains("[redacted]"))
     }
 
-    func testCredentialTransportProvidesARealTerminal() throws {
-        let terminal = try RDPPseudoTerminal()
-        defer {
-            try? terminal.master.close()
-            try? terminal.slave.close()
-        }
+    func testArgumentStreamKeepsSecretsOutOfProcessArguments() throws {
+        let credential = CredentialProfile(
+            name: "Shared",
+            username: "operator",
+            domain: "CONTOSO",
+            authenticationType: .password
+        )
+        let connection = Connection(
+            name: "Desktop",
+            host: "desktop.example.test",
+            connectionProtocol: .rdp,
+            credentialProfile: credential,
+            rdpGatewayHost: "gateway.example.test"
+        )
+        let plan = try RDPCommandBuilder.makePlan(
+            connection: connection,
+            credential: credential,
+            gatewayCredential: credential
+        )
 
-        XCTAssertEqual(isatty(terminal.slave.fileDescriptor), 1)
+        let input = try RDPArgumentStreamBuilder.makeInput(
+            plan: plan,
+            serverPassword: "server-secret",
+            gatewayPassword: "gateway-secret"
+        )
+        let inputText = try XCTUnwrap(String(data: input, encoding: .utf8))
+
+        XCTAssertEqual(RDPArgumentStreamBuilder.processArguments, ["/args-from:stdin"])
+        XCTAssertTrue(inputText.contains("/p:server-secret"))
+        XCTAssertTrue(inputText.contains(",p:gateway-secret"))
+        XCTAssertFalse(RDPArgumentStreamBuilder.processArguments.contains {
+            $0.contains("secret") || $0.contains("desktop.example.test")
+        })
+    }
+
+    func testArgumentStreamRejectsUnsafeLineAndGatewayDelimiters() throws {
+        let credential = CredentialProfile(
+            name: "Login",
+            username: "operator",
+            authenticationType: .password
+        )
+        let connection = Connection(
+            name: "Desktop",
+            host: "desktop.example.test",
+            connectionProtocol: .rdp,
+            credentialProfile: credential,
+            rdpGatewayHost: "gateway.example.test"
+        )
+        let plan = try RDPCommandBuilder.makePlan(
+            connection: connection,
+            credential: credential,
+            gatewayCredential: credential
+        )
+
+        XCTAssertThrowsError(try RDPArgumentStreamBuilder.makeInput(
+            plan: plan,
+            serverPassword: "line\nbreak",
+            gatewayPassword: "safe"
+        ))
+        XCTAssertThrowsError(try RDPArgumentStreamBuilder.makeInput(
+            plan: plan,
+            serverPassword: "safe",
+            gatewayPassword: "comma,break"
+        ))
     }
 }
