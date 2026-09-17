@@ -287,4 +287,12 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertTrue(message.contains("internal computer name or FQDN"))
         XCTAssertFalse(message.contains("exit code 133"))
     }
+
+    func testNormalDisconnectAndLogoffExitCodesAreExpected() {
+        XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 0))
+        XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 1))
+        XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 2))
+        XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 11))
+        XCTAssertFalse(RDPFailureInterpreter.isExpectedTermination(exitStatus: 133))
+    }
 }

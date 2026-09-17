@@ -63,6 +63,11 @@ struct RDPSessionFailure: Equatable {
 }
 
 enum RDPFailureInterpreter {
+    static func isExpectedTermination(exitStatus: Int32) -> Bool {
+        // FreeRDP: success, disconnect, logoff, or disconnect initiated by the user.
+        [0, 1, 2, 11].contains(exitStatus)
+    }
+
     static func message(exitStatus: Int32, details: String) -> String {
         if details.localizedCaseInsensitiveContains("E_PROXY_RAP_ACCESSDENIED") {
             return """
@@ -410,10 +415,15 @@ final class RDPService: RDPServicing, ObservableObject {
                 diagnosticPipe.fileHandleForReading.readabilityHandler = nil
                 self?.processes.removeValue(forKey: connectionID)
                 let details = self?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
-                self?.sessionFailures[connectionID] = RDPSessionFailure(
-                    exitStatus: finishedProcess.terminationStatus,
-                    details: details
-                )
+                let exitStatus = finishedProcess.terminationStatus
+                if RDPFailureInterpreter.isExpectedTermination(exitStatus: exitStatus) {
+                    self?.sessionFailures.removeValue(forKey: connectionID)
+                } else {
+                    self?.sessionFailures[connectionID] = RDPSessionFailure(
+                        exitStatus: exitStatus,
+                        details: details
+                    )
+                }
                 self?.activeConnectionIDs.remove(connectionID)
             }
         }

@@ -70,6 +70,8 @@ RD Gateway transport can be selected per connection: RPC, automatic detection, H
 without WebSockets. RPC is the compatibility default for classic Windows RD Gateway servers.
 Known RD Gateway policy failures such as `E_PROXY_RAP_ACCESSDENIED` are translated into an
 actionable message that distinguishes successful MFA from destination authorization.
+FreeRDP success, disconnect, logoff, and user-disconnect exit codes return the connection to
+its idle state without presenting a failure alert.
 
 ## Protocol boundary
 
