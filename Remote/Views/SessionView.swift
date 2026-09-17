@@ -142,7 +142,7 @@ struct SessionView: View {
             if status == .launched {
                 "This first working version runs macOS OpenSSH in Terminal. Close the Terminal window when you are finished."
             } else if connection.resolvedCredentialProfile()?.authenticationType == .password {
-                "Terminal will securely prompt for the SSH password. Remote never places it in a command or environment variable."
+                "Terminal will securely prompt for the SSH password. Relay never places it in a command or environment variable."
             } else {
                 "The connection will use macOS OpenSSH and open in Terminal."
             }

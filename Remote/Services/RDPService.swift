@@ -63,9 +63,17 @@ struct RDPSessionFailure: Equatable {
 }
 
 enum RDPFailureInterpreter {
-    static func isExpectedTermination(exitStatus: Int32) -> Bool {
+    static func isExpectedTermination(exitStatus: Int32, details: String = "") -> Bool {
         // FreeRDP: success, disconnect, logoff, or disconnect initiated by the user.
-        [0, 1, 2, 11].contains(exitStatus)
+        if [0, 1, 2, 11, 145].contains(exitStatus) {
+            return true
+        }
+
+        // SDL FreeRDP can return its generic connection-failed status when a
+        // window is closed. Only suppress it when the diagnostic confirms the
+        // underlying result was an explicit cancellation.
+        return exitStatus == 131
+            && details.localizedCaseInsensitiveContains("ERRCONNECT_CONNECT_CANCELLED")
     }
 
     static func message(exitStatus: Int32, details: String) -> String {
@@ -416,7 +424,10 @@ final class RDPService: RDPServicing, ObservableObject {
                 self?.processes.removeValue(forKey: connectionID)
                 let details = self?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
                 let exitStatus = finishedProcess.terminationStatus
-                if RDPFailureInterpreter.isExpectedTermination(exitStatus: exitStatus) {
+                if RDPFailureInterpreter.isExpectedTermination(
+                    exitStatus: exitStatus,
+                    details: details
+                ) {
                     self?.sessionFailures.removeValue(forKey: connectionID)
                 } else {
                     self?.sessionFailures[connectionID] = RDPSessionFailure(

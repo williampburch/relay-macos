@@ -54,7 +54,7 @@ final class KeychainService {
             var item = lookup
             item[kSecValueData as String] = data
             item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            item[kSecAttrLabel as String] = "Remote credential"
+            item[kSecAttrLabel as String] = "Relay credential"
 
             let addStatus = SecItemAdd(item as CFDictionary, nil)
             guard addStatus == errSecSuccess else {

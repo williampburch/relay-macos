@@ -293,6 +293,19 @@ final class RDPCommandBuilderTests: XCTestCase {
         XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 1))
         XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 2))
         XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 11))
+        XCTAssertTrue(RDPFailureInterpreter.isExpectedTermination(exitStatus: 145))
+        XCTAssertTrue(
+            RDPFailureInterpreter.isExpectedTermination(
+                exitStatus: 131,
+                details: "ERRCONNECT_CONNECT_CANCELLED [0x0002000B]"
+            )
+        )
+        XCTAssertFalse(
+            RDPFailureInterpreter.isExpectedTermination(
+                exitStatus: 131,
+                details: "ERRCONNECT_CONNECT_FAILED"
+            )
+        )
         XCTAssertFalse(RDPFailureInterpreter.isExpectedTermination(exitStatus: 133))
     }
 }

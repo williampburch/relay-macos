@@ -1,9 +1,14 @@
-# Remote
+# Relay
 
-Remote is a lightweight native macOS connection manager for organizing SSH and RDP
-connections. The current build provides the connection library, hierarchical groups,
-reusable credentials backed by macOS Keychain, optional RD Gateway configuration, search,
-editing, working external SSH sessions, and a FreeRDP-based RDP prototype.
+Relay is a lightweight native macOS connection manager for organizing SSH and RDP
+connections. It keeps remote workspaces, credentials, and gateway settings together in a
+focused native app built for macOS.
+
+![Relay app icon](Remote/Resources/RelayIcon.png)
+
+The current build provides hierarchical groups, reusable credentials backed by macOS
+Keychain, search and editing, working external SSH sessions, FreeRDP-based RDP sessions,
+optional RD Gateway configuration, and MFA-friendly window recovery.
 
 ## Requirements
 
@@ -11,7 +16,7 @@ editing, working external SSH sessions, and a FreeRDP-based RDP prototype.
 - Xcode with the macOS SDK
 - Swift 5.9 or later
 
-Open `Remote.xcodeproj` in Xcode and run the `Remote` application scheme. `Package.swift`
+Open `Remote.xcodeproj` in Xcode and run the `Relay` application. `Package.swift`
 provides the same source tree for command-line validation. From a terminal with the full
 Xcode developer directory selected, run:
 
@@ -41,7 +46,8 @@ credential profile has an opaque `keychainReference`; no password field exists i
 model. Passwords are saved, retrieved, updated, and deleted through `KeychainService` using
 macOS Security APIs. Items are device-local and available only while the Mac is unlocked.
 Deleting a credential profile or changing it to a non-password authentication method also
-deletes its Keychain item.
+deletes its Keychain item. The legacy Keychain service identifier remains stable across the
+Relay rebrand so existing saved credentials continue to resolve.
 
 ## SSH
 
@@ -60,18 +66,18 @@ dynamic resizing, fullscreen, custom desktop dimensions, certificate trust-on-fi
 and an optional RD Gateway with either shared or separate credentials. Passwords are read
 from Keychain and sent through an anonymous standard-input pipe using FreeRDP's
 `/args-from:stdin` interface; they never appear in operating-system process arguments,
-temporary files, logs, or environment variables. Closing a Remote RDP tab or choosing
+temporary files, logs, or environment variables. Closing a Relay RDP tab or choosing
 Disconnect terminates the associated FreeRDP process. While FreeRDP is running, **Show
 Window** brings its windows forward after an external authentication or 2FA flow minimizes
-them. Remote also clears the session status when the FreeRDP process exits and presents a
+them. Relay also clears the session status when the FreeRDP process exits and presents a
 bounded, redacted in-memory error summary when connection setup fails. The summary is never
 written to disk.
 RD Gateway transport can be selected per connection: RPC, automatic detection, HTTP, or HTTP
 without WebSockets. RPC is the compatibility default for classic Windows RD Gateway servers.
 Known RD Gateway policy failures such as `E_PROXY_RAP_ACCESSDENIED` are translated into an
 actionable message that distinguishes successful MFA from destination authorization.
-FreeRDP success, disconnect, logoff, and user-disconnect exit codes return the connection to
-its idle state without presenting a failure alert.
+FreeRDP success, disconnect, logoff, user-disconnect, and closed-window exit codes return the
+connection to its idle state without presenting a failure alert.
 
 ## Protocol boundary
 

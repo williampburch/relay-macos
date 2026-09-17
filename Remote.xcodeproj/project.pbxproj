@@ -1,7 +1,8 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 60;
 	objects = {
 
@@ -26,6 +27,7 @@
 		A10000000000000000000012 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* KeychainServiceTests.swift */; };
 		A10000000000000000000013 /* SSHCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* SSHCommandBuilderTests.swift */; };
 		A10000000000000000000014 /* RDPCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* RDPCommandBuilderTests.swift */; };
+		A10000000000000000000015 /* RelayIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* RelayIcon.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,7 +57,7 @@
 		B1000000000000000000000E /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		B1000000000000000000000F /* CredentialInheritanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialInheritanceTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000010 /* PersistenceSecurityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceSecurityTests.swift; sourceTree = "<group>"; };
-		B10000000000000000000011 /* Remote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Remote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000011 /* Relay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Relay.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000012 /* RemoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RemoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000013 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -64,11 +66,24 @@
 		B10000000000000000000017 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* SSHCommandBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHCommandBuilderTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* RDPCommandBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RDPCommandBuilderTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* RelayIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = RelayIcon.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		F10000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		F10000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		F10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+				runOnlyForDeploymentPostprocessing = 0;
+			};
+		F10000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -77,6 +92,7 @@
 			children = (
 				D10000000000000000000004 /* Remote */,
 				D10000000000000000000009 /* RemoteTests */,
+				D1000000000000000000000A /* Resources */,
 				B10000000000000000000013 /* Package.swift */,
 				B10000000000000000000014 /* README.md */,
 				B10000000000000000000015 /* AGENTS.md */,
@@ -84,33 +100,122 @@
 			);
 			sourceTree = "<group>";
 		};
-		D10000000000000000000003 /* Products */ = {isa = PBXGroup; children = (B10000000000000000000011 /* Remote.app */, B10000000000000000000012 /* RemoteTests.xctest */); name = Products; sourceTree = "<group>"; };
-		D10000000000000000000004 /* Remote */ = {isa = PBXGroup; children = (D10000000000000000000005 /* App */, D10000000000000000000006 /* Models */, D10000000000000000000007 /* Services */, D10000000000000000000008 /* Views */); path = Remote; sourceTree = "<group>"; };
-		D10000000000000000000005 /* App */ = {isa = PBXGroup; children = (B10000000000000000000001 /* RemoteApp.swift */); path = App; sourceTree = "<group>"; };
-		D10000000000000000000006 /* Models */ = {isa = PBXGroup; children = (B10000000000000000000002 /* Connection.swift */, B10000000000000000000003 /* ConnectionGroup.swift */, B10000000000000000000004 /* ConnectionProtocol.swift */, B10000000000000000000005 /* CredentialProfile.swift */); path = Models; sourceTree = "<group>"; };
-		D10000000000000000000007 /* Services */ = {isa = PBXGroup; children = (B10000000000000000000006 /* ConnectionStore.swift */, B10000000000000000000016 /* KeychainService.swift */, B10000000000000000000007 /* RDPService.swift */, B10000000000000000000008 /* SSHService.swift */, B10000000000000000000009 /* SessionLaunching.swift */); path = Services; sourceTree = "<group>"; };
-		D10000000000000000000008 /* Views */ = {isa = PBXGroup; children = (B1000000000000000000000A /* ConnectionEditorView.swift */, B1000000000000000000000B /* CredentialManagerView.swift */, B1000000000000000000000C /* MainView.swift */, B1000000000000000000000D /* SessionView.swift */, B1000000000000000000000E /* SidebarView.swift */); path = Views; sourceTree = "<group>"; };
-		D10000000000000000000009 /* RemoteTests */ = {isa = PBXGroup; children = (B1000000000000000000000F /* CredentialInheritanceTests.swift */, B10000000000000000000017 /* KeychainServiceTests.swift */, B10000000000000000000010 /* PersistenceSecurityTests.swift */, B10000000000000000000019 /* RDPCommandBuilderTests.swift */, B10000000000000000000018 /* SSHCommandBuilderTests.swift */); path = RemoteTests; sourceTree = "<group>"; };
+		D10000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000011 /* Remote.app */,
+				B10000000000000000000012 /* RemoteTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* Remote */ = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000005 /* App */,
+				D10000000000000000000006 /* Models */,
+				D10000000000000000000007 /* Services */,
+				D10000000000000000000008 /* Views */,
+			);
+			path = Remote;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* RemoteApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000006 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000002 /* Connection.swift */,
+				B10000000000000000000003 /* ConnectionGroup.swift */,
+				B10000000000000000000004 /* ConnectionProtocol.swift */,
+				B10000000000000000000005 /* CredentialProfile.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000007 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000006 /* ConnectionStore.swift */,
+				B10000000000000000000016 /* KeychainService.swift */,
+				B10000000000000000000007 /* RDPService.swift */,
+				B10000000000000000000008 /* SSHService.swift */,
+				B10000000000000000000009 /* SessionLaunching.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000008 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000A /* ConnectionEditorView.swift */,
+				B1000000000000000000000B /* CredentialManagerView.swift */,
+				B1000000000000000000000C /* MainView.swift */,
+				B1000000000000000000000D /* SessionView.swift */,
+				B1000000000000000000000E /* SidebarView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000009 /* RemoteTests */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000F /* CredentialInheritanceTests.swift */,
+				B10000000000000000000017 /* KeychainServiceTests.swift */,
+				B10000000000000000000010 /* PersistenceSecurityTests.swift */,
+				B10000000000000000000019 /* RDPCommandBuilderTests.swift */,
+				B10000000000000000000018 /* SSHCommandBuilderTests.swift */,
+			);
+			path = RemoteTests;
+			sourceTree = "<group>";
+		};
+		D1000000000000000000000A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000020 /* RelayIcon.png */,
+			);
+			path = Remote/Resources;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		E10000000000000000000001 /* Remote */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = H10000000000000000000002 /* Build configuration list for PBXNativeTarget "Remote" */;
-			buildPhases = (G10000000000000000000001 /* Sources */, F10000000000000000000001 /* Frameworks */, G10000000000000000000003 /* Resources */);
-			buildRules = ();
-			dependencies = ();
+			buildPhases = (
+				G10000000000000000000001 /* Sources */,
+				F10000000000000000000001 /* Frameworks */,
+				G10000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
 			name = Remote;
-			productName = Remote;
-			productReference = B10000000000000000000011 /* Remote.app */;
+			productName = Relay;
+			productReference = B10000000000000000000011 /* Relay.app */;
 			productType = "com.apple.product-type.application";
 		};
 		E10000000000000000000002 /* RemoteTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = H10000000000000000000003 /* Build configuration list for PBXNativeTarget "RemoteTests" */;
-			buildPhases = (G10000000000000000000002 /* Sources */, F10000000000000000000002 /* Frameworks */, G10000000000000000000004 /* Resources */);
-			buildRules = ();
-			dependencies = (C10000000000000000000002 /* PBXTargetDependency */);
+			buildPhases = (
+				G10000000000000000000002 /* Sources */,
+				F10000000000000000000002 /* Frameworks */,
+				G10000000000000000000004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C10000000000000000000002 /* PBXTargetDependency */,
+			);
 			name = RemoteTests;
 			productName = RemoteTests;
 			productReference = B10000000000000000000012 /* RemoteTests.xctest */;
@@ -121,47 +226,225 @@
 /* Begin PBXProject section */
 		D10000000000000000000001 /* Project object */ = {
 			isa = PBXProject;
-			attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {E10000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; E10000000000000000000002 = {CreatedOnToolsVersion = 16.0; TestTargetID = E10000000000000000000001; }; }; };
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					E10000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					E10000000000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = E10000000000000000000001;
+					};
+				};
+			};
 			buildConfigurationList = H10000000000000000000001 /* Build configuration list for PBXProject "Remote" */;
 			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (
+				en,
+				Base,
+			);
 			mainGroup = D10000000000000000000002;
 			productRefGroup = D10000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			targets = (E10000000000000000000001 /* Remote */, E10000000000000000000002 /* RemoteTests */);
+			targets = (
+				E10000000000000000000001 /* Remote */,
+				E10000000000000000000002 /* RemoteTests */,
+			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		G10000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		G10000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		G10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000015 /* RelayIcon.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G10000000000000000000004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		G10000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000011, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000B, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E); runOnlyForDeploymentPostprocessing = 0; };
-		G10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000F, A10000000000000000000012, A10000000000000000000010, A10000000000000000000014, A10000000000000000000013); runOnlyForDeploymentPostprocessing = 0; };
+		G10000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* RemoteApp.swift in Sources */,
+				A10000000000000000000002 /* Connection.swift in Sources */,
+				A10000000000000000000003 /* ConnectionGroup.swift in Sources */,
+				A10000000000000000000004 /* ConnectionProtocol.swift in Sources */,
+				A10000000000000000000005 /* CredentialProfile.swift in Sources */,
+				A10000000000000000000006 /* ConnectionStore.swift in Sources */,
+				A10000000000000000000011 /* KeychainService.swift in Sources */,
+				A10000000000000000000007 /* RDPService.swift in Sources */,
+				A10000000000000000000008 /* SSHService.swift in Sources */,
+				A10000000000000000000009 /* SessionLaunching.swift in Sources */,
+				A1000000000000000000000A /* ConnectionEditorView.swift in Sources */,
+				A1000000000000000000000B /* CredentialManagerView.swift in Sources */,
+				A1000000000000000000000C /* MainView.swift in Sources */,
+				A1000000000000000000000D /* SessionView.swift in Sources */,
+				A1000000000000000000000E /* SidebarView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		G10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000F /* CredentialInheritanceTests.swift in Sources */,
+				A10000000000000000000012 /* KeychainServiceTests.swift in Sources */,
+				A10000000000000000000010 /* PersistenceSecurityTests.swift in Sources */,
+				A10000000000000000000014 /* RDPCommandBuilderTests.swift in Sources */,
+				A10000000000000000000013 /* SSHCommandBuilderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		C10000000000000000000002 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = E10000000000000000000001 /* Remote */; targetProxy = C10000000000000000000001 /* PBXContainerItemProxy */; };
+		C10000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000001 /* Remote */;
+			targetProxy = C10000000000000000000001 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		I10000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		I10000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
-		I10000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; ENABLE_TESTABILITY = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Remote; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.Remote; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
-		I10000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Remote; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities"; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.Remote; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; }; name = Release; };
-		I10000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.RemoteTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Remote.app/Contents/MacOS/Remote"; }; name = Debug; };
-		I10000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.example.RemoteTests; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Remote.app/Contents/MacOS/Remote"; }; name = Release; };
+		I10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		I10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		I10000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9D4AP5HC8;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Remote/Relay-Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.Relay;
+				PRODUCT_NAME = Relay;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		I10000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X9D4AP5HC8;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Remote/Relay-Info.plist;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.Relay;
+				PRODUCT_NAME = Relay;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		I10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = X9D4AP5HC8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.RelayTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Relay.app/Contents/MacOS/Relay";
+			};
+			name = Debug;
+		};
+		I10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = X9D4AP5HC8;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.RelayTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Relay.app/Contents/MacOS/Relay";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		H10000000000000000000001 /* Build configuration list for PBXProject "Remote" */ = {isa = XCConfigurationList; buildConfigurations = (I10000000000000000000001 /* Debug */, I10000000000000000000002 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		H10000000000000000000002 /* Build configuration list for PBXNativeTarget "Remote" */ = {isa = XCConfigurationList; buildConfigurations = (I10000000000000000000003 /* Debug */, I10000000000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		H10000000000000000000003 /* Build configuration list for PBXNativeTarget "RemoteTests" */ = {isa = XCConfigurationList; buildConfigurations = (I10000000000000000000005 /* Debug */, I10000000000000000000006 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		H10000000000000000000001 /* Build configuration list for PBXProject "Remote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				I10000000000000000000001 /* Debug */,
+				I10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		H10000000000000000000002 /* Build configuration list for PBXNativeTarget "Remote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				I10000000000000000000003 /* Debug */,
+				I10000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		H10000000000000000000003 /* Build configuration list for PBXNativeTarget "RemoteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				I10000000000000000000005 /* Debug */,
+				I10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = D10000000000000000000001 /* Project object */;

@@ -2,16 +2,20 @@ import AppKit
 import SwiftData
 import SwiftUI
 
+private enum RelayBrand {
+    static let accent = Color(red: 0.15, green: 0.42, blue: 0.86)
+}
+
 @MainActor
-final class RemoteApplicationDelegate: NSObject, NSApplicationDelegate {
+final class RelayApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         RDPService.shared.disconnectAll()
     }
 }
 
 @main
-struct RemoteApp: App {
-    @NSApplicationDelegateAdaptor(RemoteApplicationDelegate.self) private var appDelegate
+struct RelayApp: App {
+    @NSApplicationDelegateAdaptor(RelayApplicationDelegate.self) private var appDelegate
 
     private let modelContainer: ModelContainer
 
@@ -27,6 +31,7 @@ struct RemoteApp: App {
         WindowGroup {
             MainView()
                 .frame(minWidth: 920, minHeight: 600)
+                .tint(RelayBrand.accent)
         }
         .modelContainer(modelContainer)
         .commands {
@@ -37,6 +42,7 @@ struct RemoteApp: App {
             CredentialManagerView()
                 .modelContainer(modelContainer)
                 .frame(minWidth: 620, minHeight: 420)
+                .tint(RelayBrand.accent)
         }
     }
 }

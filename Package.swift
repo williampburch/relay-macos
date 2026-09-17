@@ -3,19 +3,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "Remote",
+    name: "Relay",
     platforms: [
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "Remote", targets: ["Remote"])
+        .executable(name: "Relay", targets: ["Remote"])
     ],
     targets: [
         .executableTarget(
             name: "Remote",
             path: "Remote",
             exclude: [
-                "RDP/FreeRDPBridge/README.md"
+                "RDP/FreeRDPBridge/README.md",
+                "Resources"
             ]
         ),
         .testTarget(

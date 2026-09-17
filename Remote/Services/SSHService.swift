@@ -16,7 +16,7 @@ enum SSHLaunchError: LocalizedError, Equatable {
         case .terminalUnavailable:
             return "Terminal could not be found on this Mac."
         case .unableToCreateLauncher:
-            return "Remote could not create the temporary SSH launcher."
+            return "Relay could not create the temporary SSH launcher."
         }
     }
 }
@@ -157,7 +157,7 @@ final class TerminalLauncher: TerminalLaunching {
         }
 
         let directory = cachesDirectory
-            .appendingPathComponent("com.example.Remote", isDirectory: true)
+            .appendingPathComponent("com.williampburch.Relay", isDirectory: true)
             .appendingPathComponent("SSHLaunchers", isDirectory: true)
         let launcherURL = directory
             .appendingPathComponent(UUID().uuidString)

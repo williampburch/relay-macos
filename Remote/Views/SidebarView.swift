@@ -56,7 +56,7 @@ struct SidebarView: View {
         }
         .listStyle(.sidebar)
         .searchable(text: $searchText, placement: .sidebar, prompt: "Search connections")
-        .navigationTitle("Remote")
+        .navigationTitle("Relay")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
