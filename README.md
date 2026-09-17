@@ -68,6 +68,8 @@ bounded, redacted in-memory error summary when connection setup fails. The summa
 written to disk.
 RD Gateway transport can be selected per connection: RPC, automatic detection, HTTP, or HTTP
 without WebSockets. RPC is the compatibility default for classic Windows RD Gateway servers.
+Known RD Gateway policy failures such as `E_PROXY_RAP_ACCESSDENIED` are translated into an
+actionable message that distinguishes successful MFA from destination authorization.
 
 ## Protocol boundary
 

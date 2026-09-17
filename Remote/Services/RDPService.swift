@@ -40,8 +40,10 @@ enum RDPLaunchError: LocalizedError, Equatable {
         case .sessionNotRunning:
             return "The FreeRDP session is no longer running. Connect again to start a new session."
         case .sessionEnded(let exitStatus, let details):
-            let diagnostic = details.isEmpty ? "No additional diagnostic was reported." : details
-            return "FreeRDP ended during connection setup (exit code \(exitStatus)).\n\n\(diagnostic)"
+            return RDPFailureInterpreter.message(
+                exitStatus: exitStatus,
+                details: details
+            )
         case .windowActivationFailed:
             return "The FreeRDP window could not be brought forward. Look for sdl-freerdp in the Dock or use Command-Tab."
         case .launchFailed(let message):
@@ -58,6 +60,23 @@ struct RDPLaunchPlan: Equatable {
 struct RDPSessionFailure: Equatable {
     let exitStatus: Int32
     let details: String
+}
+
+enum RDPFailureInterpreter {
+    static func message(exitStatus: Int32, details: String) -> String {
+        if details.localizedCaseInsensitiveContains("E_PROXY_RAP_ACCESSDENIED") {
+            return """
+            RD Gateway accepted the authentication request, but its Resource Authorization Policy denied access to the requested computer.
+
+            Use the gateway-approved internal computer name or FQDN instead of an IP address. If that name is already correct, the RD Gateway administrator must grant your account access to that computer or resource group.
+            """
+        }
+
+        let diagnostic = details.isEmpty
+            ? "No additional diagnostic was reported."
+            : details
+        return "FreeRDP ended during connection setup (exit code \(exitStatus)).\n\n\(diagnostic)"
+    }
 }
 
 enum RDPDiagnosticSanitizer {

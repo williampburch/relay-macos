@@ -276,4 +276,15 @@ final class RDPCommandBuilderTests: XCTestCase {
             gatewayPassword: "comma,break"
         ))
     }
+
+    func testRAPAccessDeniedGetsActionableExplanation() {
+        let message = RDPFailureInterpreter.message(
+            exitStatus: 133,
+            details: "RPC Fault PDU: status=E_PROXY_RAP_ACCESSDENIED"
+        )
+
+        XCTAssertTrue(message.contains("Resource Authorization Policy"))
+        XCTAssertTrue(message.contains("internal computer name or FQDN"))
+        XCTAssertFalse(message.contains("exit code 133"))
+    }
 }
