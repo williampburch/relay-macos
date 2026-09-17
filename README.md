@@ -2,7 +2,8 @@
 
 Remote is a lightweight native macOS connection manager for organizing SSH and RDP
 connections. Milestone 1 provides the connection library, hierarchical groups, reusable
-credential metadata, search, editing, and placeholder session tabs.
+credential metadata, optional RD Gateway configuration, search, editing, and placeholder
+session tabs.
 
 ## Requirements
 
@@ -19,6 +20,21 @@ swift build
 swift test
 ```
 
+If `xcode-select -p` still reports `/Library/Developer/CommandLineTools` after installing
+Xcode, select the full installation and complete its first-launch setup:
+
+```sh
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+sudo xcodebuild -runFirstLaunch
+```
+
+FreeRDP is not required to work on Milestones 1–3. Install its Homebrew package before the
+RDP prototype milestone:
+
+```sh
+brew install freerdp
+```
+
 ## Security boundary
 
 The SwiftData store contains connection definitions and credential metadata only. A
@@ -29,4 +45,6 @@ model. Keychain creation, access-control policy, and secret CRUD belong to Miles
 
 `SSHService` and `RDPService` conform to a common session-launching interface. They are
 deliberate Milestone 1 placeholders. SSH will delegate to macOS OpenSSH, and RDP will remain
-isolated behind the FreeRDP bridge.
+isolated behind the FreeRDP bridge. Each RDP connection may specify an RD Gateway host, port,
+and optional gateway credential profile; omitting the gateway profile reuses the connection's
+resolved credential profile.

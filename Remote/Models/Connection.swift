@@ -34,6 +34,9 @@ final class Connection {
     var credentialProfile: CredentialProfile?
     var usernameOverride: String?
     var domainOverride: String?
+    var rdpGatewayHost: String?
+    var rdpGatewayPort: Int?
+    var rdpGatewayCredentialProfile: CredentialProfile?
     var notes: String?
     private var settingsData: Data
     var sortOrder: Int
@@ -84,6 +87,9 @@ final class Connection {
         credentialProfile: CredentialProfile? = nil,
         usernameOverride: String? = nil,
         domainOverride: String? = nil,
+        rdpGatewayHost: String? = nil,
+        rdpGatewayPort: Int? = nil,
+        rdpGatewayCredentialProfile: CredentialProfile? = nil,
         notes: String? = nil,
         settings: ConnectionSettings = ConnectionSettings(),
         sortOrder: Int = 0,
@@ -100,6 +106,9 @@ final class Connection {
         self.credentialProfile = credentialProfile
         self.usernameOverride = usernameOverride
         self.domainOverride = domainOverride
+        self.rdpGatewayHost = rdpGatewayHost
+        self.rdpGatewayPort = rdpGatewayPort
+        self.rdpGatewayCredentialProfile = rdpGatewayCredentialProfile
         self.notes = notes
         self.settingsData = (try? JSONEncoder().encode(settings)) ?? Data()
         self.sortOrder = sortOrder
@@ -118,6 +127,9 @@ final class Connection {
         credentialProfile: CredentialProfile? = nil,
         usernameOverride: String? = nil,
         domainOverride: String? = nil,
+        rdpGatewayHost: String? = nil,
+        rdpGatewayPort: Int? = nil,
+        rdpGatewayCredentialProfile: CredentialProfile? = nil,
         notes: String? = nil,
         settings: ConnectionSettings = ConnectionSettings(),
         sortOrder: Int = 0,
@@ -135,6 +147,9 @@ final class Connection {
             credentialProfile: credentialProfile,
             usernameOverride: usernameOverride,
             domainOverride: domainOverride,
+            rdpGatewayHost: rdpGatewayHost,
+            rdpGatewayPort: rdpGatewayPort,
+            rdpGatewayCredentialProfile: rdpGatewayCredentialProfile,
             notes: notes,
             settings: settings,
             sortOrder: sortOrder,
@@ -166,6 +181,16 @@ final class Connection {
             return value
         }
         return group?.resolvedDomain()
+    }
+
+    var usesRDPGateway: Bool {
+        connectionProtocol == .rdp && nonEmpty(rdpGatewayHost) != nil
+    }
+
+    /// A gateway can use its own reusable profile or fall back to the
+    /// connection's resolved profile. Authentication material remains in Keychain.
+    func resolvedRDPGatewayCredentialProfile() -> CredentialProfile? {
+        rdpGatewayCredentialProfile ?? resolvedCredentialProfile()
     }
 
     private func nonEmpty(_ value: String?) -> String? {

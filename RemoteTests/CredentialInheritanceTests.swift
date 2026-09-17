@@ -76,4 +76,48 @@ final class CredentialInheritanceTests: XCTestCase {
         XCTAssertNil(second.resolvedCredentialProfile())
         XCTAssertNil(second.resolvedDomain())
     }
+
+    func testRDPGatewayCanUseSeparateCredentialProfile() {
+        let serverCredential = CredentialProfile(
+            name: "Server Login",
+            username: "server-user",
+            authenticationType: .password
+        )
+        let gatewayCredential = CredentialProfile(
+            name: "Gateway Login",
+            username: "gateway-user",
+            domain: "EDGE",
+            authenticationType: .password
+        )
+        let connection = Connection(
+            name: "DC01",
+            host: "dc01.internal.example",
+            connectionProtocol: .rdp,
+            credentialProfile: serverCredential,
+            rdpGatewayHost: "gateway.example.com",
+            rdpGatewayPort: 443,
+            rdpGatewayCredentialProfile: gatewayCredential
+        )
+
+        XCTAssertTrue(connection.usesRDPGateway)
+        XCTAssertEqual(connection.rdpGatewayHost, "gateway.example.com")
+        XCTAssertTrue(connection.resolvedRDPGatewayCredentialProfile() === gatewayCredential)
+    }
+
+    func testRDPGatewayFallsBackToConnectionCredential() {
+        let credential = CredentialProfile(
+            name: "Shared Login",
+            username: "shared-user",
+            authenticationType: .password
+        )
+        let connection = Connection(
+            name: "SQL01",
+            host: "sql01.internal.example",
+            connectionProtocol: .rdp,
+            credentialProfile: credential,
+            rdpGatewayHost: "gateway.example.com"
+        )
+
+        XCTAssertTrue(connection.resolvedRDPGatewayCredentialProfile() === credential)
+    }
 }

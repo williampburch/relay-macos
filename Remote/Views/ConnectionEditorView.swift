@@ -18,6 +18,10 @@ struct ConnectionEditorView: View {
     @State private var credentialProfileID: UUID?
     @State private var usernameOverride: String
     @State private var domainOverride: String
+    @State private var usesRDPGateway: Bool
+    @State private var rdpGatewayHost: String
+    @State private var rdpGatewayPort: Int
+    @State private var rdpGatewayCredentialProfileID: UUID?
     @State private var notes: String
     @State private var isFavorite: Bool
 
@@ -32,6 +36,12 @@ struct ConnectionEditorView: View {
         _credentialProfileID = State(initialValue: connection?.credentialProfile?.id)
         _usernameOverride = State(initialValue: connection?.usernameOverride ?? "")
         _domainOverride = State(initialValue: connection?.domainOverride ?? "")
+        _usesRDPGateway = State(initialValue: connection?.usesRDPGateway ?? false)
+        _rdpGatewayHost = State(initialValue: connection?.rdpGatewayHost ?? "")
+        _rdpGatewayPort = State(initialValue: connection?.rdpGatewayPort ?? 443)
+        _rdpGatewayCredentialProfileID = State(
+            initialValue: connection?.rdpGatewayCredentialProfile?.id
+        )
         _notes = State(initialValue: connection?.notes ?? "")
         _isFavorite = State(initialValue: connection?.isFavorite ?? false)
     }
@@ -40,6 +50,10 @@ struct ConnectionEditorView: View {
         !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (1...65_535).contains(port)
+            && (protocolType != .rdp || !usesRDPGateway || (
+                !rdpGatewayHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && (1...65_535).contains(rdpGatewayPort)
+            ))
     }
 
     var body: some View {
@@ -82,6 +96,34 @@ struct ConnectionEditorView: View {
                     TextField("Username override", text: $usernameOverride)
                     if protocolType == .rdp {
                         TextField("Domain override", text: $domainOverride)
+                    }
+                }
+
+                if protocolType == .rdp {
+                    Section("RD Gateway") {
+                        Toggle("Use RD Gateway", isOn: $usesRDPGateway)
+
+                        if usesRDPGateway {
+                            TextField(
+                                "Gateway host",
+                                text: $rdpGatewayHost,
+                                prompt: Text("gateway.example.com")
+                            )
+                            TextField(
+                                "Gateway port",
+                                value: $rdpGatewayPort,
+                                format: .number.grouping(.never)
+                            )
+                            Picker(
+                                "Gateway credentials",
+                                selection: $rdpGatewayCredentialProfileID
+                            ) {
+                                Text("Same as connection").tag(nil as UUID?)
+                                ForEach(sortedProfiles) { profile in
+                                    Text(profile.name).tag(profile.id as UUID?)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -153,6 +195,15 @@ struct ConnectionEditorView: View {
         target.credentialProfile = credentialProfiles.first { $0.id == credentialProfileID }
         target.usernameOverride = nilIfEmpty(usernameOverride)
         target.domainOverride = protocolType == .rdp ? nilIfEmpty(domainOverride) : nil
+        target.rdpGatewayHost = protocolType == .rdp && usesRDPGateway
+            ? nilIfEmpty(rdpGatewayHost)
+            : nil
+        target.rdpGatewayPort = protocolType == .rdp && usesRDPGateway
+            ? rdpGatewayPort
+            : nil
+        target.rdpGatewayCredentialProfile = protocolType == .rdp && usesRDPGateway
+            ? credentialProfiles.first { $0.id == rdpGatewayCredentialProfileID }
+            : nil
         target.notes = nilIfEmpty(notes)
         target.isFavorite = isFavorite
 

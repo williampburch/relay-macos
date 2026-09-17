@@ -19,6 +19,11 @@ struct SessionView: View {
                     Text("\(connection.host):\(connection.port)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    if connection.usesRDPGateway, let gatewayHost = connection.rdpGatewayHost {
+                        Text("via \(gatewayHost):\(connection.rdpGatewayPort ?? 443)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Spacer()
