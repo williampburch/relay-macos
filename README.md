@@ -1,9 +1,9 @@
 # Remote
 
 Remote is a lightweight native macOS connection manager for organizing SSH and RDP
-connections. Milestone 1 provides the connection library, hierarchical groups, reusable
-credential metadata, optional RD Gateway configuration, search, editing, and placeholder
-session tabs.
+connections. The current build provides the connection library, hierarchical groups,
+reusable credentials backed by macOS Keychain, optional RD Gateway configuration, search,
+editing, and placeholder session tabs.
 
 ## Requirements
 
@@ -39,12 +39,15 @@ brew install freerdp
 
 The SwiftData store contains connection definitions and credential metadata only. A
 credential profile has an opaque `keychainReference`; no password field exists in the data
-model. Keychain creation, access-control policy, and secret CRUD belong to Milestone 2.
+model. Passwords are saved, retrieved, updated, and deleted through `KeychainService` using
+macOS Security APIs. Items are device-local and available only while the Mac is unlocked.
+Deleting a credential profile or changing it to a non-password authentication method also
+deletes its Keychain item.
 
 ## Protocol boundary
 
-`SSHService` and `RDPService` conform to a common session-launching interface. They are
-deliberate Milestone 1 placeholders. SSH will delegate to macOS OpenSSH, and RDP will remain
+`SSHService` and `RDPService` conform to a common session-launching interface. They remain
+protocol placeholders. SSH will delegate to macOS OpenSSH, and RDP will remain
 isolated behind the FreeRDP bridge. Each RDP connection may specify an RD Gateway host, port,
 and optional gateway credential profile; omitting the gateway profile reuses the connection's
 resolved credential profile.

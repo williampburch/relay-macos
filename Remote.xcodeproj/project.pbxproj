@@ -22,6 +22,8 @@
 		A1000000000000000000000E /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* SidebarView.swift */; };
 		A1000000000000000000000F /* CredentialInheritanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* CredentialInheritanceTests.swift */; };
 		A10000000000000000000010 /* PersistenceSecurityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* PersistenceSecurityTests.swift */; };
+		A10000000000000000000011 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* KeychainService.swift */; };
+		A10000000000000000000012 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* KeychainServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,8 @@
 		B10000000000000000000013 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		B10000000000000000000014 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		B10000000000000000000015 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		B10000000000000000000016 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,9 +84,9 @@
 		D10000000000000000000004 /* Remote */ = {isa = PBXGroup; children = (D10000000000000000000005 /* App */, D10000000000000000000006 /* Models */, D10000000000000000000007 /* Services */, D10000000000000000000008 /* Views */); path = Remote; sourceTree = "<group>"; };
 		D10000000000000000000005 /* App */ = {isa = PBXGroup; children = (B10000000000000000000001 /* RemoteApp.swift */); path = App; sourceTree = "<group>"; };
 		D10000000000000000000006 /* Models */ = {isa = PBXGroup; children = (B10000000000000000000002 /* Connection.swift */, B10000000000000000000003 /* ConnectionGroup.swift */, B10000000000000000000004 /* ConnectionProtocol.swift */, B10000000000000000000005 /* CredentialProfile.swift */); path = Models; sourceTree = "<group>"; };
-		D10000000000000000000007 /* Services */ = {isa = PBXGroup; children = (B10000000000000000000006 /* ConnectionStore.swift */, B10000000000000000000007 /* RDPService.swift */, B10000000000000000000008 /* SSHService.swift */, B10000000000000000000009 /* SessionLaunching.swift */); path = Services; sourceTree = "<group>"; };
+		D10000000000000000000007 /* Services */ = {isa = PBXGroup; children = (B10000000000000000000006 /* ConnectionStore.swift */, B10000000000000000000016 /* KeychainService.swift */, B10000000000000000000007 /* RDPService.swift */, B10000000000000000000008 /* SSHService.swift */, B10000000000000000000009 /* SessionLaunching.swift */); path = Services; sourceTree = "<group>"; };
 		D10000000000000000000008 /* Views */ = {isa = PBXGroup; children = (B1000000000000000000000A /* ConnectionEditorView.swift */, B1000000000000000000000B /* CredentialManagerView.swift */, B1000000000000000000000C /* MainView.swift */, B1000000000000000000000D /* SessionView.swift */, B1000000000000000000000E /* SidebarView.swift */); path = Views; sourceTree = "<group>"; };
-		D10000000000000000000009 /* RemoteTests */ = {isa = PBXGroup; children = (B1000000000000000000000F /* CredentialInheritanceTests.swift */, B10000000000000000000010 /* PersistenceSecurityTests.swift */); path = RemoteTests; sourceTree = "<group>"; };
+		D10000000000000000000009 /* RemoteTests */ = {isa = PBXGroup; children = (B1000000000000000000000F /* CredentialInheritanceTests.swift */, B10000000000000000000017 /* KeychainServiceTests.swift */, B10000000000000000000010 /* PersistenceSecurityTests.swift */); path = RemoteTests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -133,8 +137,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		G10000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000B, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E); runOnlyForDeploymentPostprocessing = 0; };
-		G10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000F, A10000000000000000000010); runOnlyForDeploymentPostprocessing = 0; };
+		G10000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000011, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000B, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E); runOnlyForDeploymentPostprocessing = 0; };
+		G10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000000F, A10000000000000000000012, A10000000000000000000010); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */

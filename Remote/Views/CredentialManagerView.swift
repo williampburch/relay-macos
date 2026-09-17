@@ -9,6 +9,10 @@ struct CredentialManagerView: View {
     @State private var selection: UUID?
     @State private var profileToEdit: CredentialProfile?
     @State private var showingNewProfile = false
+    @State private var keychainErrorMessage = ""
+    @State private var showingKeychainError = false
+
+    private let keychainService = KeychainService.shared
 
     private var sortedProfiles: [CredentialProfile] {
         credentialProfiles.sorted {
@@ -85,11 +89,24 @@ struct CredentialManagerView: View {
         .sheet(item: $profileToEdit) { profile in
             CredentialProfileEditorView(profile: profile)
         }
+        .alert("Unable to Delete Credential", isPresented: $showingKeychainError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(keychainErrorMessage)
+        }
     }
 
     private func delete(_ profile: CredentialProfile) {
-        if selection == profile.id { selection = nil }
-        modelContext.delete(profile)
+        do {
+            if let reference = profile.keychainReference {
+                try keychainService.deletePassword(reference: reference)
+            }
+            if selection == profile.id { selection = nil }
+            modelContext.delete(profile)
+        } catch {
+            keychainErrorMessage = error.localizedDescription
+            showingKeychainError = true
+        }
     }
 
     private func icon(for type: AuthenticationType) -> String {
@@ -151,6 +168,11 @@ private struct CredentialProfileEditorView: View {
     @State private var domain: String
     @State private var authenticationType: AuthenticationType
     @State private var sshKeyPath: String
+    @State private var password = ""
+    @State private var keychainErrorMessage = ""
+    @State private var showingKeychainError = false
+
+    private let keychainService = KeychainService.shared
 
     init(profile: CredentialProfile?) {
         self.profile = profile
@@ -182,6 +204,12 @@ private struct CredentialProfileEditorView: View {
                     }
 
                     if authenticationType == .password {
+                        SecureField(
+                            profile?.keychainReference == nil ? "Password" : "New password (leave blank to keep current)",
+                            text: $password
+                        )
+                        .textContentType(.password)
+
                         Text("Passwords are stored only in macOS Keychain. Authentication material is never saved in the profile database.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -197,11 +225,16 @@ private struct CredentialProfileEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .keyboardShortcut(.defaultAction)
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(!canSave)
                 }
             }
         }
-        .frame(width: 480, height: 430)
+        .frame(width: 480, height: 470)
+        .alert("Unable to Save Credential", isPresented: $showingKeychainError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(keychainErrorMessage)
+        }
     }
 
     private func save() {
@@ -213,14 +246,42 @@ private struct CredentialProfileEditorView: View {
             authenticationType: authenticationType
         )
 
-        target.name = normalizedName
-        target.username = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        target.domain = nilIfEmpty(domain)
-        target.authenticationType = authenticationType
-        target.sshKeyPath = authenticationType == .sshKey ? nilIfEmpty(sshKeyPath) : nil
+        do {
+            if authenticationType == .password {
+                if !password.isEmpty {
+                    target.keychainReference = try keychainService.savePassword(
+                        password,
+                        reference: target.keychainReference
+                    )
+                }
+            } else if let reference = target.keychainReference {
+                try keychainService.deletePassword(reference: reference)
+                target.keychainReference = nil
+            }
 
-        if profile == nil { modelContext.insert(target) }
-        dismiss()
+            target.name = normalizedName
+            target.username = username.trimmingCharacters(in: .whitespacesAndNewlines)
+            target.domain = nilIfEmpty(domain)
+            target.authenticationType = authenticationType
+            target.sshKeyPath = authenticationType == .sshKey ? nilIfEmpty(sshKeyPath) : nil
+
+            if profile == nil { modelContext.insert(target) }
+            dismiss()
+        } catch {
+            keychainErrorMessage = error.localizedDescription
+            showingKeychainError = true
+        }
+    }
+
+    private var canSave: Bool {
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+
+        if authenticationType == .password {
+            return profile?.keychainReference != nil || !password.isEmpty
+        }
+        return true
     }
 
     private func nilIfEmpty(_ value: String) -> String? {
