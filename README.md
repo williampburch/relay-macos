@@ -66,6 +66,8 @@ Window** brings its windows forward after an external authentication or 2FA flow
 them. Remote also clears the session status when the FreeRDP process exits and presents a
 bounded, redacted in-memory error summary when connection setup fails. The summary is never
 written to disk.
+RD Gateway transport can be selected per connection: RPC, automatic detection, HTTP, or HTTP
+without WebSockets. RPC is the compatibility default for classic Windows RD Gateway servers.
 
 ## Protocol boundary
 

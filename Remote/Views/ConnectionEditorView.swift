@@ -22,6 +22,7 @@ struct ConnectionEditorView: View {
     @State private var rdpGatewayHost: String
     @State private var rdpGatewayPort: Int
     @State private var rdpGatewayCredentialProfileID: UUID?
+    @State private var rdpGatewayTransport: RDPGatewayTransport
     @State private var notes: String
     @State private var isFavorite: Bool
     @State private var sshKeepAliveInterval: Int
@@ -47,6 +48,9 @@ struct ConnectionEditorView: View {
         _rdpGatewayPort = State(initialValue: connection?.rdpGatewayPort ?? 443)
         _rdpGatewayCredentialProfileID = State(
             initialValue: connection?.rdpGatewayCredentialProfile?.id
+        )
+        _rdpGatewayTransport = State(
+            initialValue: connection?.settings.effectiveRDPGatewayTransport ?? .rpc
         )
         _notes = State(initialValue: connection?.notes ?? "")
         _isFavorite = State(initialValue: connection?.isFavorite ?? false)
@@ -177,6 +181,14 @@ struct ConnectionEditorView: View {
                                     Text(profile.name).tag(profile.id as UUID?)
                                 }
                             }
+                            Picker("Gateway transport", selection: $rdpGatewayTransport) {
+                                ForEach(RDPGatewayTransport.allCases) { transport in
+                                    Text(transport.displayName).tag(transport)
+                                }
+                            }
+                            Text("RPC is the compatibility default for classic Windows RD Gateway deployments. Try the HTTP modes if the gateway rejects RPC.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -272,6 +284,9 @@ struct ConnectionEditorView: View {
             : nil
         settings.desktopHeight = protocolType == .rdp && rdpUsesCustomSize && !rdpOpensInFullScreen
             ? rdpDesktopHeight
+            : nil
+        settings.rdpGatewayTransport = protocolType == .rdp && usesRDPGateway
+            ? rdpGatewayTransport
             : nil
         target.settings = settings
 

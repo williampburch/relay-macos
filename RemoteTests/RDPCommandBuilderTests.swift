@@ -67,7 +67,7 @@ final class RDPCommandBuilderTests: XCTestCase {
         )
 
         XCTAssertTrue(plan.arguments.contains(
-            "/gateway:g:gateway.example.com:443,u:gateway-user,d:EDGE,usage-method:direct,type:auto"
+            "/gateway:g:gateway.example.com:443,u:gateway-user,d:EDGE,usage-method:direct,type:rpc"
         ))
         XCTAssertFalse(plan.arguments.contains { $0.contains("opaque-gateway-reference") })
         XCTAssertFalse(plan.arguments.contains { $0.contains(",p:") })
@@ -98,7 +98,35 @@ final class RDPCommandBuilderTests: XCTestCase {
         )
 
         XCTAssertTrue(plan.arguments.contains(
-            "/gateway:g:gateway.example.com:443,u:connection-user,d:CONNECTION,usage-method:direct,type:auto"
+            "/gateway:g:gateway.example.com:443,u:connection-user,d:CONNECTION,usage-method:direct,type:rpc"
+        ))
+    }
+
+    func testGatewayTransportCanDisableWebSockets() throws {
+        let credential = CredentialProfile(
+            name: "Gateway",
+            username: "operator",
+            authenticationType: .password
+        )
+        let connection = Connection(
+            name: "Desktop",
+            host: "desktop.example.test",
+            connectionProtocol: .rdp,
+            credentialProfile: credential,
+            rdpGatewayHost: "gateway.example.test",
+            settings: ConnectionSettings(
+                rdpGatewayTransport: .httpWithoutWebSockets
+            )
+        )
+
+        let plan = try RDPCommandBuilder.makePlan(
+            connection: connection,
+            credential: credential,
+            gatewayCredential: credential
+        )
+
+        XCTAssertTrue(plan.arguments.contains(
+            "/gateway:g:gateway.example.test:443,u:operator,usage-method:direct,type:http,no-websockets"
         ))
     }
 

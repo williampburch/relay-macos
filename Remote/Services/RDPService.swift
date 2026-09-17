@@ -207,7 +207,9 @@ enum RDPCommandBuilder {
                 gatewayParts.append("d:\(try gatewayValue(gatewayDomain))")
             }
             gatewayParts.append("usage-method:direct")
-            gatewayParts.append("type:auto")
+            gatewayParts.append(
+                "type:\(settings.effectiveRDPGatewayTransport.freeRDPValue)"
+            )
             arguments.append("/gateway:\(gatewayParts.joined(separator: ","))")
             needsGatewayPassword = true
         }

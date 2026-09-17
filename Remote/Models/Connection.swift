@@ -1,25 +1,59 @@
 import Foundation
 import SwiftData
 
+enum RDPGatewayTransport: String, Codable, CaseIterable, Identifiable, Sendable {
+    case rpc
+    case automatic
+    case http
+    case httpWithoutWebSockets
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .rpc: "RPC (classic RD Gateway)"
+        case .automatic: "Automatic"
+        case .http: "HTTP"
+        case .httpWithoutWebSockets: "HTTP without WebSockets"
+        }
+    }
+
+    var freeRDPValue: String {
+        switch self {
+        case .rpc: "rpc"
+        case .automatic: "auto"
+        case .http: "http"
+        case .httpWithoutWebSockets: "http,no-websockets"
+        }
+    }
+}
+
 struct ConnectionSettings: Codable, Equatable, Sendable {
     var keepAliveInterval: Int?
     var proxyJump: String?
     var opensInFullScreen: Bool
     var desktopWidth: Int?
     var desktopHeight: Int?
+    var rdpGatewayTransport: RDPGatewayTransport?
 
     init(
         keepAliveInterval: Int? = nil,
         proxyJump: String? = nil,
         opensInFullScreen: Bool = false,
         desktopWidth: Int? = nil,
-        desktopHeight: Int? = nil
+        desktopHeight: Int? = nil,
+        rdpGatewayTransport: RDPGatewayTransport? = nil
     ) {
         self.keepAliveInterval = keepAliveInterval
         self.proxyJump = proxyJump
         self.opensInFullScreen = opensInFullScreen
         self.desktopWidth = desktopWidth
         self.desktopHeight = desktopHeight
+        self.rdpGatewayTransport = rdpGatewayTransport
+    }
+
+    var effectiveRDPGatewayTransport: RDPGatewayTransport {
+        rdpGatewayTransport ?? .rpc
     }
 }
 
