@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 enum RDPLaunchError: LocalizedError, Equatable {
@@ -10,6 +11,8 @@ enum RDPLaunchError: LocalizedError, Equatable {
     case unsupportedAuthentication(profileName: String)
     case invalidGatewayValue
     case passwordPromptCancelled
+    case sessionNotRunning
+    case windowActivationFailed
     case launchFailed(String)
 
     var errorDescription: String? {
@@ -30,6 +33,10 @@ enum RDPLaunchError: LocalizedError, Equatable {
             return "RD Gateway host, username, and domain values cannot contain commas or line breaks."
         case .passwordPromptCancelled:
             return "The password prompt was cancelled."
+        case .sessionNotRunning:
+            return "The FreeRDP session is no longer running. Connect again to start a new session."
+        case .windowActivationFailed:
+            return "The FreeRDP window could not be brought forward. Look for sdl-freerdp in the Dock or use Command-Tab."
         case .launchFailed(let message):
             return "FreeRDP could not be launched: \(message)"
         }
@@ -192,13 +199,14 @@ final class RDPPasswordPrompt: RDPPasswordPrompting {
 protocol RDPServicing: SessionLaunching {}
 
 @MainActor
-final class RDPService: RDPServicing {
+final class RDPService: RDPServicing, ObservableObject {
     static let shared = RDPService()
 
     private let keychainService: KeychainService
     private let passwordPrompt: RDPPasswordPrompting
     private let fileManager: FileManager
     private var processes: [UUID: Process] = [:]
+    @Published private(set) var activeConnectionIDs: Set<UUID> = []
 
     init(
         keychainService: KeychainService = .shared,
@@ -255,12 +263,14 @@ final class RDPService: RDPServicing {
             Task { @MainActor in
                 guard self?.processes[connectionID] === finishedProcess else { return }
                 self?.processes.removeValue(forKey: connectionID)
+                self?.activeConnectionIDs.remove(connectionID)
             }
         }
 
         do {
             processes[connectionID] = process
             try process.run()
+            activeConnectionIDs.insert(connectionID)
 
             var credentialData = Data(serverPassword.utf8)
             credentialData.append(0x0A)
@@ -274,12 +284,31 @@ final class RDPService: RDPServicing {
         } catch {
             try? inputPipe.fileHandleForWriting.close()
             processes.removeValue(forKey: connectionID)
+            activeConnectionIDs.remove(connectionID)
             if process.isRunning { process.terminate() }
             throw RDPLaunchError.launchFailed(error.localizedDescription)
         }
     }
 
+    func showWindow(connectionID: UUID) throws {
+        guard let process = processes[connectionID], process.isRunning else {
+            activeConnectionIDs.remove(connectionID)
+            throw RDPLaunchError.sessionNotRunning
+        }
+        guard let application = NSRunningApplication(
+            processIdentifier: process.processIdentifier
+        ) else {
+            throw RDPLaunchError.windowActivationFailed
+        }
+
+        application.unhide()
+        guard application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps]) else {
+            throw RDPLaunchError.windowActivationFailed
+        }
+    }
+
     func disconnect(connectionID: UUID) async {
+        activeConnectionIDs.remove(connectionID)
         guard let process = processes.removeValue(forKey: connectionID) else { return }
         if process.isRunning {
             process.terminate()
@@ -289,6 +318,7 @@ final class RDPService: RDPServicing {
     func disconnectAll() {
         let runningProcesses = processes.values
         processes.removeAll()
+        activeConnectionIDs.removeAll()
         for process in runningProcesses where process.isRunning {
             process.terminate()
         }

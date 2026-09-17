@@ -3,6 +3,7 @@ import SwiftUI
 struct SessionView: View {
     let connection: Connection
 
+    @ObservedObject private var rdpService = RDPService.shared
     @State private var status: SessionStatus = .idle
     @State private var showingEditor = false
     @State private var showingConnectionError = false
@@ -38,11 +39,23 @@ struct SessionView: View {
                     Label("Edit", systemImage: "pencil")
                 }
 
-                Button(connectButtonTitle) {
-                    connect()
+                if status == .launched, connection.connectionProtocol == .rdp {
+                    Button {
+                        showRDPWindow()
+                    } label: {
+                        Label("Show Window", systemImage: "macwindow.on.rectangle")
+                    }
+
+                    Button("Disconnect", role: .destructive) {
+                        disconnectRDP()
+                    }
+                } else {
+                    Button(connectButtonTitle) {
+                        connect()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(status == .connecting)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(status == .connecting)
             }
             .padding()
 
@@ -73,6 +86,12 @@ struct SessionView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(connectionErrorMessage)
+        }
+        .onChange(of: rdpService.activeConnectionIDs) { _, activeConnectionIDs in
+            guard connection.connectionProtocol == .rdp,
+                  status == .launched,
+                  !activeConnectionIDs.contains(connection.id) else { return }
+            status = .idle
         }
     }
 
@@ -126,7 +145,7 @@ struct SessionView: View {
             }
         case .rdp:
             if status == .launched {
-                "The FreeRDP desktop is open in its own window. Use Disconnect here or close that window when finished."
+                "FreeRDP is running in its own window. After approving 2FA, use Show Window if the desktop remains minimized."
             } else {
                 "The connection will open in a FreeRDP window with clipboard and dynamic resizing enabled."
             }
@@ -135,15 +154,6 @@ struct SessionView: View {
 
     private func connect() {
         guard status != .connecting else { return }
-
-        if status == .launched, connection.connectionProtocol == .rdp {
-            status = .connecting
-            Task { @MainActor in
-                await RDPService.shared.disconnect(connectionID: connection.id)
-                status = .idle
-            }
-            return
-        }
 
         status = .connecting
 
@@ -157,10 +167,13 @@ struct SessionView: View {
                         credential: credential
                     )
                 case .rdp:
-                    try await RDPService.shared.connect(
+                    try await rdpService.connect(
                         to: connection,
                         credential: credential
                     )
+                    guard rdpService.activeConnectionIDs.contains(connection.id) else {
+                        throw RDPLaunchError.sessionNotRunning
+                    }
                 }
                 status = .launched
             } catch {
@@ -168,6 +181,24 @@ struct SessionView: View {
                 connectionErrorMessage = error.localizedDescription
                 showingConnectionError = true
             }
+        }
+    }
+
+    private func showRDPWindow() {
+        do {
+            try rdpService.showWindow(connectionID: connection.id)
+        } catch {
+            status = .idle
+            connectionErrorMessage = error.localizedDescription
+            showingConnectionError = true
+        }
+    }
+
+    private func disconnectRDP() {
+        status = .connecting
+        Task { @MainActor in
+            await rdpService.disconnect(connectionID: connection.id)
+            status = .idle
         }
     }
 }
@@ -181,7 +212,7 @@ private enum SessionStatus: Equatable {
         switch self {
         case .idle: "Disconnected"
         case .connecting: "Connecting"
-        case .launched: "Opened externally"
+        case .launched: "FreeRDP running"
         }
     }
 }

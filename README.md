@@ -60,7 +60,9 @@ dynamic resizing, fullscreen, custom desktop dimensions, certificate trust-on-fi
 and an optional RD Gateway with either shared or separate credentials. Passwords are read
 from Keychain and written to FreeRDP's standard input; they never appear in process arguments,
 temporary files, logs, or environment variables. Closing a Remote RDP tab or choosing
-Disconnect terminates the associated FreeRDP process.
+Disconnect terminates the associated FreeRDP process. While FreeRDP is running, **Show
+Window** brings its windows forward after an external authentication or 2FA flow minimizes
+them. Remote also clears the session status when the FreeRDP process exits.
 
 ## Protocol boundary
 
