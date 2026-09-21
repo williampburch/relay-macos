@@ -6,9 +6,9 @@ focused native app built for macOS.
 
 ![Relay app icon](Remote/Resources/RelayIcon.png)
 
-The current build provides hierarchical groups, reusable credentials backed by macOS
-Keychain, search and editing, working external SSH sessions, FreeRDP-based RDP sessions,
-optional RD Gateway configuration, and MFA-friendly window recovery.
+The current build provides hierarchical groups, protocol-specific credential profiles,
+search and editing, embedded SSH sessions with pop-out and full-screen modes, FreeRDP-based
+RDP sessions, optional RD Gateway configuration, and MFA-friendly window recovery.
 
 ## Requirements
 
@@ -51,12 +51,18 @@ Relay rebrand so existing saved credentials continue to resolve.
 
 ## SSH
 
-`SSHService` delegates connections to `/usr/bin/ssh` and opens each session in Terminal. It
-supports the resolved username, custom port, SSH key path, ssh-agent, `~/.ssh/config`,
-ProxyJump, and server keepalive settings. A temporary executable launcher passes only
-shell-quoted connection options and deletes itself as soon as it starts. Passwords and
-Keychain references never enter the launcher, process arguments, or environment. Password
-profiles use OpenSSH's interactive Terminal prompt in this first working version.
+Relay runs `/usr/bin/ssh` in a native SwiftTerm terminal embedded in the selected connection
+tab. A live session can move to its own window, enter macOS full screen, and return to Relay
+without reconnecting. It supports a username, custom port, SSH key path, ssh-agent,
+`~/.ssh/config`, ProxyJump, and server keepalive settings. Password, key-passphrase, and
+verification-code prompts stay interactive inside the terminal. Authentication material and
+Keychain references never enter process arguments or environment variables.
+
+SSH and RDP credentials have separate creation flows. SSH profiles offer interactive prompt,
+private-key, and ssh-agent/OpenSSH-config methods, and use a username without a Windows
+domain. RDP profiles offer stored-Keychain-password and prompt-every-time methods with an
+optional domain. Use the key menu in Relay's toolbar, or create a compatible profile directly
+from a connection editor.
 
 ## RDP
 
@@ -81,8 +87,19 @@ connection to its idle state without presenting a failure alert.
 
 ## Protocol boundary
 
-`SSHService` and `RDPService` conform to a common session-launching interface. The SSH
-implementation is isolated behind that interface so a future PTY-based tab can continue to
-use OpenSSH. FreeRDP process management and argument construction remain isolated behind
-`RDPService` so an embedded renderer can replace the external SDL window without changing
-the connection, credential, or tab models.
+SSH session ownership and its embedded terminal controller are isolated from connection and
+credential persistence. FreeRDP process management and argument construction remain isolated
+behind `RDPService` so a later embedded RDP renderer can replace the external SDL window
+without changing the connection, credential, or tab models.
+
+## Stability and recovery
+
+Relay explicitly saves connection, group, and credential edits before closing an editor.
+Closing a tab, deleting a connection or group, or changing an open connection tears down any
+associated SSH and RDP processes. Each FreeRDP launch owns an isolated process-and-pipe bundle,
+so output from a previous process cannot be delivered to a reconnect. The embedded terminal
+uses SwiftTerm 1.17, which includes bounded PTY buffering and process-lifecycle fixes.
+
+If the persistent SwiftData store cannot open, Relay leaves it untouched and offers a clearly
+marked temporary in-memory workspace instead of terminating at launch. Changes made in that
+recovery workspace are intentionally not saved.

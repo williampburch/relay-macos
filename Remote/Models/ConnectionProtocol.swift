@@ -46,12 +46,31 @@ enum AuthenticationType: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    func isSupported(by connectionProtocol: ConnectionProtocol) -> Bool {
+    static func availableMethods(for connectionProtocol: ConnectionProtocol) -> [AuthenticationType] {
         switch connectionProtocol {
         case .ssh:
-            return true
+            return [.promptEveryTime, .sshKey, .sshAgent]
         case .rdp:
-            return self == .password || self == .promptEveryTime
+            return [.password, .promptEveryTime]
         }
+    }
+
+    func displayName(for connectionProtocol: ConnectionProtocol) -> String {
+        switch (connectionProtocol, self) {
+        case (.ssh, .promptEveryTime):
+            return "Password or interactive prompt"
+        case (.ssh, .sshKey):
+            return "Private key"
+        case (.ssh, .sshAgent):
+            return "SSH agent or OpenSSH config"
+        case (.rdp, .password):
+            return "Stored password"
+        default:
+            return displayName
+        }
+    }
+
+    func isSupported(by connectionProtocol: ConnectionProtocol) -> Bool {
+        Self.availableMethods(for: connectionProtocol).contains(self)
     }
 }

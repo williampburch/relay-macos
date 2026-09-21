@@ -9,6 +9,7 @@ struct MainView: View {
     @State private var openConnectionIDs: [UUID] = []
     @State private var showingConnectionEditor = false
     @State private var showingCredentialManager = false
+    @State private var credentialManagerInitialProtocol: ConnectionProtocol?
 
     private var selectedConnection: Connection? {
         guard let selectedConnectionID else { return nil }
@@ -35,8 +36,20 @@ struct MainView: View {
                 }
                 .help("Create a connection")
 
-                Button {
-                    showingCredentialManager = true
+                Menu {
+                    Button("Manage Credential Profiles…", systemImage: "key") {
+                        credentialManagerInitialProtocol = nil
+                        showingCredentialManager = true
+                    }
+                    Divider()
+                    Button("New SSH Credential…", systemImage: "terminal") {
+                        credentialManagerInitialProtocol = .ssh
+                        showingCredentialManager = true
+                    }
+                    Button("New RDP Credential…", systemImage: "display") {
+                        credentialManagerInitialProtocol = .rdp
+                        showingCredentialManager = true
+                    }
                 } label: {
                     Label("Credentials", systemImage: "key")
                 }
@@ -47,13 +60,15 @@ struct MainView: View {
             ConnectionEditorView(connection: nil, initialGroupID: selectedGroupID)
         }
         .sheet(isPresented: $showingCredentialManager) {
-            CredentialManagerView()
+            CredentialManagerView(initialNewProtocol: credentialManagerInitialProtocol)
         }
         .onChange(of: selectedConnectionID) { _, newValue in
             guard let newValue, !openConnectionIDs.contains(newValue) else { return }
             openConnectionIDs.append(newValue)
         }
         .onChange(of: connections.map(\.id)) { _, availableIDs in
+            let removedIDs = Set(openConnectionIDs).subtracting(availableIDs)
+            removedIDs.forEach { SessionCoordinator.disconnect(connectionID: $0) }
             openConnectionIDs.removeAll { !availableIDs.contains($0) }
             if let selectedConnectionID, !availableIDs.contains(selectedConnectionID) {
                 self.selectedConnectionID = openConnectionIDs.last
@@ -100,11 +115,7 @@ struct MainView: View {
 
     private func closeTab(_ id: UUID) {
         guard let index = openConnectionIDs.firstIndex(of: id) else { return }
-        if connections.first(where: { $0.id == id })?.connectionProtocol == .rdp {
-            Task { @MainActor in
-                await RDPService.shared.disconnect(connectionID: id)
-            }
-        }
+        SessionCoordinator.disconnect(connectionID: id)
         let wasSelected = selectedConnectionID == id
         openConnectionIDs.remove(at: index)
 

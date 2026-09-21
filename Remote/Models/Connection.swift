@@ -194,27 +194,33 @@ final class Connection {
     }
 
     func resolvedCredentialProfile() -> CredentialProfile? {
-        credentialProfile ?? group?.resolvedCredentialProfile()
+        if let credentialProfile,
+           credentialProfile.isCompatible(with: connectionProtocol) {
+            return credentialProfile
+        }
+        return group?.resolvedCredentialProfile(for: connectionProtocol)
     }
 
     func resolvedUsername() -> String? {
         if let value = nonEmpty(usernameOverride) {
             return value
         }
-        if let value = nonEmpty(credentialProfile?.username) {
+        if credentialProfile?.isCompatible(with: connectionProtocol) == true,
+           let value = nonEmpty(credentialProfile?.username) {
             return value
         }
-        return group?.resolvedUsername()
+        return group?.resolvedUsername(for: connectionProtocol)
     }
 
     func resolvedDomain() -> String? {
         if let value = nonEmpty(domainOverride) {
             return value
         }
-        if let value = nonEmpty(credentialProfile?.domain) {
+        if credentialProfile?.isCompatible(with: connectionProtocol) == true,
+           let value = nonEmpty(credentialProfile?.domain) {
             return value
         }
-        return group?.resolvedDomain()
+        return group?.resolvedDomain(for: connectionProtocol)
     }
 
     var usesRDPGateway: Bool {
@@ -224,7 +230,11 @@ final class Connection {
     /// A gateway can use its own reusable profile or fall back to the
     /// connection's resolved profile. Authentication material remains in Keychain.
     func resolvedRDPGatewayCredentialProfile() -> CredentialProfile? {
-        rdpGatewayCredentialProfile ?? resolvedCredentialProfile()
+        if let rdpGatewayCredentialProfile,
+           rdpGatewayCredentialProfile.isCompatible(with: .rdp) {
+            return rdpGatewayCredentialProfile
+        }
+        return resolvedCredentialProfile()
     }
 
     private func nonEmpty(_ value: String?) -> String? {

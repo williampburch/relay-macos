@@ -14,6 +14,8 @@ struct SidebarView: View {
     @State private var connectionToEdit: Connection?
     @State private var showingNewGroup = false
     @State private var showingNewConnection = false
+    @State private var persistenceErrorMessage = ""
+    @State private var showingPersistenceError = false
 
     private var rootGroups: [ConnectionGroup] {
         groups
@@ -95,6 +97,11 @@ struct SidebarView: View {
                 ContentUnavailableView.search(text: searchText)
             }
         }
+        .alert("Unable to Update Relay", isPresented: $showingPersistenceError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(persistenceErrorMessage)
+        }
     }
 
     @ViewBuilder
@@ -146,13 +153,39 @@ struct SidebarView: View {
     }
 
     private func deleteConnection(_ connection: Connection) {
+        SessionCoordinator.disconnect(connectionID: connection.id)
         if selectedConnectionID == connection.id { selectedConnectionID = nil }
         modelContext.delete(connection)
+        saveDeletion()
     }
 
     private func deleteGroup(_ group: ConnectionGroup) {
+        connectionIDs(in: group).forEach {
+            SessionCoordinator.disconnect(connectionID: $0)
+        }
         if selectedGroupID == group.id { selectedGroupID = nil }
         modelContext.delete(group)
+        saveDeletion()
+    }
+
+    private func connectionIDs(in root: ConnectionGroup) -> Set<UUID> {
+        var result = Set<UUID>()
+        var pending = [root]
+        var visited = Set<UUID>()
+        while let group = pending.popLast(), visited.insert(group.id).inserted {
+            result.formUnion(group.connections.map(\.id))
+            pending.append(contentsOf: group.children)
+        }
+        return result
+    }
+
+    private func saveDeletion() {
+        do {
+            try modelContext.save()
+        } catch {
+            persistenceErrorMessage = error.localizedDescription
+            showingPersistenceError = true
+        }
     }
 
     private func groupSort(_ lhs: ConnectionGroup, _ rhs: ConnectionGroup) -> Bool {

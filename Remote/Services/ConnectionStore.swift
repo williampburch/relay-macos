@@ -39,6 +39,15 @@ final class ConnectionStore {
         return try ModelContainer(for: schema, configurations: [configuration])
     }
 
+    static func makeInMemoryContainer() throws -> ModelContainer {
+        let schema = Self.schema
+        let configuration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: true
+        )
+        return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
     static func makePreview(populated: Bool = true) throws -> ConnectionStore {
         let store = try ConnectionStore(inMemory: true)
         guard populated else { return store }

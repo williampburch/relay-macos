@@ -3,6 +3,16 @@ import XCTest
 @testable import Remote
 
 final class PersistenceSecurityTests: XCTestCase {
+    @MainActor
+    func testRecoveryContainerCanInitializeTheFullSchema() throws {
+        let container = try ConnectionStore.makeInMemoryContainer()
+        let context = ModelContext(container)
+
+        XCTAssertTrue(try context.fetch(FetchDescriptor<Connection>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<ConnectionGroup>()).isEmpty)
+        XCTAssertTrue(try context.fetch(FetchDescriptor<CredentialProfile>()).isEmpty)
+    }
+
     func testPersistentSchemaContainsOnlyAKeychainReferenceForCredentialSecrets() throws {
         let schema = Schema([
             Connection.self,

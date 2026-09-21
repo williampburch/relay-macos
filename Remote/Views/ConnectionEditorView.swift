@@ -31,6 +31,9 @@ struct ConnectionEditorView: View {
     @State private var rdpUsesCustomSize: Bool
     @State private var rdpDesktopWidth: Int
     @State private var rdpDesktopHeight: Int
+    @State private var showingNewCredential = false
+    @State private var saveErrorMessage = ""
+    @State private var showingSaveError = false
 
     init(connection: Connection?, initialGroupID: UUID? = nil) {
         self.connection = connection
@@ -92,6 +95,13 @@ struct ConnectionEditorView: View {
                         if (oldValue == .ssh && port == 22) || (oldValue == .rdp && port == 3389) {
                             port = newValue == .ssh ? 22 : 3389
                         }
+                        if let credentialProfileID,
+                           credentialProfiles.first(where: { $0.id == credentialProfileID })?.isCompatible(with: newValue) != true {
+                            self.credentialProfileID = nil
+                        }
+                        if newValue != .rdp {
+                            rdpGatewayCredentialProfileID = nil
+                        }
                     }
 
                     TextField("Port", value: $port, format: .number.grouping(.never))
@@ -111,8 +121,12 @@ struct ConnectionEditorView: View {
                     Picker("Credential profile", selection: $credentialProfileID) {
                         Text("Inherit from group").tag(nil as UUID?)
                         ForEach(sortedProfiles) { profile in
-                            Text(profile.name).tag(profile.id as UUID?)
+                            Text("\(profile.name) — \(profile.authenticationType.displayName(for: protocolType))")
+                                .tag(profile.id as UUID?)
                         }
+                    }
+                    Button("New \(protocolType.displayName) Credential…", systemImage: "plus") {
+                        showingNewCredential = true
                     }
                     TextField("Username override", text: $usernameOverride)
                     if protocolType == .rdp {
@@ -177,7 +191,7 @@ struct ConnectionEditorView: View {
                                 selection: $rdpGatewayCredentialProfileID
                             ) {
                                 Text("Same as connection").tag(nil as UUID?)
-                                ForEach(sortedProfiles) { profile in
+                                ForEach(rdpProfiles) { profile in
                                     Text(profile.name).tag(profile.id as UUID?)
                                 }
                             }
@@ -213,6 +227,19 @@ struct ConnectionEditorView: View {
             }
         }
         .frame(width: 500, height: 590)
+        .sheet(isPresented: $showingNewCredential) {
+            CredentialProfileEditorView(
+                profile: nil,
+                initialProtocol: protocolType
+            ) { savedProfile in
+                credentialProfileID = savedProfile.id
+            }
+        }
+        .alert("Unable to Save Connection", isPresented: $showingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage)
+        }
     }
 
     private var sortedGroups: [ConnectionGroup] {
@@ -222,11 +249,19 @@ struct ConnectionEditorView: View {
     }
 
     private var sortedProfiles: [CredentialProfile] {
-        credentialProfiles.sorted {
+        credentialProfiles
+            .filter { $0.isCompatible(with: protocolType) }
+            .sorted {
             $0.sortOrder == $1.sortOrder
                 ? $0.name.localizedStandardCompare($1.name) == .orderedAscending
                 : $0.sortOrder < $1.sortOrder
         }
+    }
+
+    private var rdpProfiles: [CredentialProfile] {
+        credentialProfiles
+            .filter { $0.isCompatible(with: .rdp) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     private func groupPath(for group: ConnectionGroup) -> String {
@@ -290,8 +325,20 @@ struct ConnectionEditorView: View {
             : nil
         target.settings = settings
 
-        if connection == nil { modelContext.insert(target) }
-        dismiss()
+        let isNew = connection == nil
+        if isNew { modelContext.insert(target) }
+
+        do {
+            try modelContext.save()
+            if !isNew {
+                SessionCoordinator.disconnect(connectionID: target.id)
+            }
+            dismiss()
+        } catch {
+            if isNew { modelContext.delete(target) }
+            saveErrorMessage = error.localizedDescription
+            showingSaveError = true
+        }
     }
 
     private func nilIfEmpty(_ value: String) -> String? {
@@ -313,6 +360,8 @@ struct GroupEditorView: View {
     @State private var defaultCredentialProfileID: UUID?
     @State private var defaultUsername: String
     @State private var defaultDomain: String
+    @State private var saveErrorMessage = ""
+    @State private var showingSaveError = false
 
     init(group: ConnectionGroup?, initialParentID: UUID? = nil) {
         self.group = group
@@ -361,6 +410,11 @@ struct GroupEditorView: View {
             }
         }
         .frame(width: 450, height: 380)
+        .alert("Unable to Save Group", isPresented: $showingSaveError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage)
+        }
     }
 
     private var availableParents: [ConnectionGroup] {
@@ -381,8 +435,16 @@ struct GroupEditorView: View {
         target.username = nilIfEmpty(defaultUsername)
         target.domain = nilIfEmpty(defaultDomain)
 
-        if group == nil { modelContext.insert(target) }
-        dismiss()
+        let isNew = group == nil
+        if isNew { modelContext.insert(target) }
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            if isNew { modelContext.delete(target) }
+            saveErrorMessage = error.localizedDescription
+            showingSaveError = true
+        }
     }
 
     private func nilIfEmpty(_ value: String) -> String? {

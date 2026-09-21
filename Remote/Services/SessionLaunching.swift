@@ -19,3 +19,19 @@ protocol SessionLaunching {
     func connect(to connection: Connection, credential: CredentialProfile?) async throws
     func disconnect(connectionID: UUID) async
 }
+
+/// One place for tab, editor, and deletion flows to tear down protocol
+/// sessions. Calling both services is intentional and makes cleanup safe even
+/// when a connection's protocol was edited while it was open.
+@MainActor
+enum SessionCoordinator {
+    static func isActive(connectionID: UUID) -> Bool {
+        SSHSessionService.shared.activeConnectionIDs.contains(connectionID)
+            || RDPService.shared.activeConnectionIDs.contains(connectionID)
+    }
+
+    static func disconnect(connectionID: UUID) {
+        SSHSessionService.shared.disconnect(connectionID: connectionID)
+        RDPService.shared.disconnectNow(connectionID: connectionID)
+    }
+}

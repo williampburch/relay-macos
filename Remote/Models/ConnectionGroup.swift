@@ -65,12 +65,44 @@ final class ConnectionGroup {
         firstValueInAncestry(\.credentialProfile)
     }
 
+    func resolvedCredentialProfile(
+        for connectionProtocol: ConnectionProtocol
+    ) -> CredentialProfile? {
+        var group: ConnectionGroup? = self
+        var visited = Set<UUID>()
+
+        while let current = group, visited.insert(current.id).inserted {
+            if let profile = current.credentialProfile,
+               profile.isCompatible(with: connectionProtocol) {
+                return profile
+            }
+            group = current.parent
+        }
+        return nil
+    }
+
     func resolvedUsername() -> String? {
         firstStringInAncestry(explicit: \.username) { $0.username }
     }
 
+    func resolvedUsername(for connectionProtocol: ConnectionProtocol) -> String? {
+        firstStringInAncestry(
+            explicit: \.username,
+            acceptingProfile: { $0.isCompatible(with: connectionProtocol) },
+            profileValue: { $0.username }
+        )
+    }
+
     func resolvedDomain() -> String? {
         firstStringInAncestry(explicit: \.domain) { $0.domain }
+    }
+
+    func resolvedDomain(for connectionProtocol: ConnectionProtocol) -> String? {
+        firstStringInAncestry(
+            explicit: \.domain,
+            acceptingProfile: { $0.isCompatible(with: connectionProtocol) },
+            profileValue: { $0.domain }
+        )
     }
 
     /// Returns true when `candidate` is this group or one of its descendants.
@@ -106,6 +138,7 @@ final class ConnectionGroup {
 
     private func firstStringInAncestry(
         explicit keyPath: KeyPath<ConnectionGroup, String?>,
+        acceptingProfile: (CredentialProfile) -> Bool = { _ in true },
         profileValue: (CredentialProfile) -> String?
     ) -> String? {
         var group: ConnectionGroup? = self
@@ -116,6 +149,7 @@ final class ConnectionGroup {
                 return value
             }
             if let profile = current.credentialProfile,
+               acceptingProfile(profile),
                let value = nonEmpty(profileValue(profile)) {
                 return value
             }

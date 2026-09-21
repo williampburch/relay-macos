@@ -62,6 +62,36 @@ struct RDPSessionFailure: Equatable {
     let details: String
 }
 
+/// Owns every resource associated with one FreeRDP process. Keeping the
+/// process and its pipes together prevents callbacks from an older process
+/// from mutating a newly reconnected session with the same connection ID.
+private final class RDPRunningSession {
+    let process = Process()
+    let argumentPipe = Pipe()
+    let diagnosticPipe = Pipe()
+    var diagnostics = ""
+
+    func appendDiagnostic(_ diagnostic: String) {
+        let combined = diagnostics.isEmpty ? diagnostic : "\(diagnostics)\n\(diagnostic)"
+        diagnostics = String(combined.suffix(6_000))
+    }
+
+    func closeParentWriteHandles() {
+        try? diagnosticPipe.fileHandleForWriting.close()
+    }
+
+    func stop() {
+        process.terminationHandler = nil
+        diagnosticPipe.fileHandleForReading.readabilityHandler = nil
+        if process.isRunning {
+            process.terminate()
+        }
+        try? argumentPipe.fileHandleForWriting.close()
+        try? diagnosticPipe.fileHandleForWriting.close()
+        try? diagnosticPipe.fileHandleForReading.close()
+    }
+}
+
 enum RDPFailureInterpreter {
     static func isExpectedTermination(exitStatus: Int32, details: String = "") -> Bool {
         // FreeRDP: success, disconnect, logoff, or disconnect initiated by the user.
@@ -325,8 +355,7 @@ final class RDPService: RDPServicing, ObservableObject {
     private let keychainService: KeychainService
     private let passwordPrompt: RDPPasswordPrompting
     private let fileManager: FileManager
-    private var processes: [UUID: Process] = [:]
-    private var processDiagnostics: [UUID: String] = [:]
+    private var sessions: [UUID: RDPRunningSession] = [:]
     @Published private(set) var activeConnectionIDs: Set<UUID> = []
     @Published private(set) var sessionFailures: [UUID: RDPSessionFailure] = [:]
 
@@ -371,7 +400,7 @@ final class RDPService: RDPServicing, ObservableObject {
             gatewayPassword?.removeAll(keepingCapacity: false)
         }
 
-        await disconnect(connectionID: connection.id)
+        disconnectNow(connectionID: connection.id)
 
         let connectionID = connection.id
         var argumentInput = try RDPArgumentStreamBuilder.makeInput(
@@ -383,15 +412,15 @@ final class RDPService: RDPServicing, ObservableObject {
             argumentInput.resetBytes(in: argumentInput.startIndex..<argumentInput.endIndex)
         }
 
-        let process = Process()
+        let session = RDPRunningSession()
+        let process = session.process
         process.executableURL = executableURL
         process.arguments = RDPArgumentStreamBuilder.processArguments
-        let argumentPipe = Pipe()
-        let diagnosticPipe = Pipe()
+        let argumentPipe = session.argumentPipe
+        let diagnosticPipe = session.diagnosticPipe
         process.standardInput = argumentPipe
         process.standardOutput = diagnosticPipe
         process.standardError = diagnosticPipe
-        processDiagnostics[connectionID] = ""
         sessionFailures.removeValue(forKey: connectionID)
 
         let sensitiveValues = diagnosticRedactionValues(
@@ -400,8 +429,7 @@ final class RDPService: RDPServicing, ObservableObject {
             gatewayCredential: gatewayCredential,
             passwords: [serverPassword, gatewayPassword].compactMap { $0 }
         )
-        let service = self
-        diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak service] handle in
+        diagnosticPipe.fileHandleForReading.readabilityHandler = { [weak self, weak session] handle in
             let data = handle.availableData
             guard !data.isEmpty else {
                 handle.readabilityHandler = nil
@@ -413,52 +441,57 @@ final class RDPService: RDPServicing, ObservableObject {
                 redacting: sensitiveValues
             )
             guard !sanitized.isEmpty else { return }
-            Task { @MainActor in
-                service?.appendDiagnostic(sanitized, connectionID: connectionID)
+            Task { @MainActor [weak self, weak session] in
+                guard let self, let session,
+                      self.sessions[connectionID] === session else { return }
+                session.appendDiagnostic(sanitized)
             }
         }
-        process.terminationHandler = { [weak service] finishedProcess in
-            Task { @MainActor in
-                guard service?.processes[connectionID] === finishedProcess else { return }
+        process.terminationHandler = { [weak self, weak session] finishedProcess in
+            Task { @MainActor [weak self, weak session] in
+                guard let self, let session,
+                      session.process === finishedProcess,
+                      self.sessions[connectionID] === session else { return }
                 try? await Task.sleep(for: .milliseconds(150))
-                diagnosticPipe.fileHandleForReading.readabilityHandler = nil
-                service?.processes.removeValue(forKey: connectionID)
-                let details = service?.processDiagnostics.removeValue(forKey: connectionID) ?? ""
+                guard self.sessions[connectionID] === session else { return }
+                session.diagnosticPipe.fileHandleForReading.readabilityHandler = nil
+                self.sessions.removeValue(forKey: connectionID)
+                let details = session.diagnostics
                 let exitStatus = finishedProcess.terminationStatus
                 if RDPFailureInterpreter.isExpectedTermination(
                     exitStatus: exitStatus,
                     details: details
                 ) {
-                    service?.sessionFailures.removeValue(forKey: connectionID)
+                    self.sessionFailures.removeValue(forKey: connectionID)
                 } else {
-                    service?.sessionFailures[connectionID] = RDPSessionFailure(
+                    self.sessionFailures[connectionID] = RDPSessionFailure(
                         exitStatus: exitStatus,
                         details: details
                     )
                 }
-                service?.activeConnectionIDs.remove(connectionID)
+                self.activeConnectionIDs.remove(connectionID)
             }
         }
 
         do {
-            processes[connectionID] = process
+            sessions[connectionID] = session
             try process.run()
+            session.closeParentWriteHandles()
             activeConnectionIDs.insert(connectionID)
             try argumentPipe.fileHandleForWriting.write(contentsOf: argumentInput)
             try argumentPipe.fileHandleForWriting.close()
         } catch {
-            try? argumentPipe.fileHandleForWriting.close()
-            diagnosticPipe.fileHandleForReading.readabilityHandler = nil
-            processes.removeValue(forKey: connectionID)
-            processDiagnostics.removeValue(forKey: connectionID)
+            if sessions[connectionID] === session {
+                sessions.removeValue(forKey: connectionID)
+            }
             activeConnectionIDs.remove(connectionID)
-            if process.isRunning { process.terminate() }
+            session.stop()
             throw RDPLaunchError.launchFailed(error.localizedDescription)
         }
     }
 
     func showWindow(connectionID: UUID) throws {
-        guard let process = processes[connectionID], process.isRunning else {
+        guard let process = sessions[connectionID]?.process, process.isRunning else {
             activeConnectionIDs.remove(connectionID)
             throw RDPLaunchError.sessionNotRunning
         }
@@ -469,30 +502,28 @@ final class RDPService: RDPServicing, ObservableObject {
         }
 
         application.unhide()
-        guard application.activate(options: [.activateAllWindows, .activateIgnoringOtherApps]) else {
+        guard application.activate(options: [.activateAllWindows]) else {
             throw RDPLaunchError.windowActivationFailed
         }
     }
 
     func disconnect(connectionID: UUID) async {
+        disconnectNow(connectionID: connectionID)
+    }
+
+    func disconnectNow(connectionID: UUID) {
         activeConnectionIDs.remove(connectionID)
         sessionFailures.removeValue(forKey: connectionID)
-        processDiagnostics.removeValue(forKey: connectionID)
-        guard let process = processes.removeValue(forKey: connectionID) else { return }
-        if process.isRunning {
-            process.terminate()
-        }
+        guard let session = sessions.removeValue(forKey: connectionID) else { return }
+        session.stop()
     }
 
     func disconnectAll() {
-        let runningProcesses = processes.values
-        processes.removeAll()
-        processDiagnostics.removeAll()
+        let runningSessions = sessions.values
+        sessions.removeAll()
         sessionFailures.removeAll()
         activeConnectionIDs.removeAll()
-        for process in runningProcesses where process.isRunning {
-            process.terminate()
-        }
+        runningSessions.forEach { $0.stop() }
     }
 
     private func resolvePassword(
@@ -523,12 +554,6 @@ final class RDPService: RDPServicing, ObservableObject {
                 profileName: profile?.name ?? "Credential"
             )
         }
-    }
-
-    private func appendDiagnostic(_ diagnostic: String, connectionID: UUID) {
-        let current = processDiagnostics[connectionID] ?? ""
-        let combined = current.isEmpty ? diagnostic : "\(current)\n\(diagnostic)"
-        processDiagnostics[connectionID] = String(combined.suffix(6_000))
     }
 
     private func diagnosticRedactionValues(

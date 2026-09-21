@@ -28,6 +28,8 @@
 		A10000000000000000000013 /* SSHCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* SSHCommandBuilderTests.swift */; };
 		A10000000000000000000014 /* RDPCommandBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* RDPCommandBuilderTests.swift */; };
 		A10000000000000000000015 /* RelayIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* RelayIcon.png */; };
+		A10000000000000000000016 /* EmbeddedSSHSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* EmbeddedSSHSessionView.swift */; };
+		A10000000000000000000017 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = J10000000000000000000002 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +69,7 @@
 		B10000000000000000000018 /* SSHCommandBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHCommandBuilderTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000019 /* RDPCommandBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RDPCommandBuilderTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000020 /* RelayIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = RelayIcon.png; sourceTree = "<group>"; };
+		B10000000000000000000021 /* EmbeddedSSHSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedSSHSessionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +77,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000017 /* SwiftTerm in Frameworks */,
 			);
 				runOnlyForDeploymentPostprocessing = 0;
 			};
@@ -156,6 +160,7 @@
 			children = (
 				B1000000000000000000000A /* ConnectionEditorView.swift */,
 				B1000000000000000000000B /* CredentialManagerView.swift */,
+				B10000000000000000000021 /* EmbeddedSSHSessionView.swift */,
 				B1000000000000000000000C /* MainView.swift */,
 				B1000000000000000000000D /* SessionView.swift */,
 				B1000000000000000000000E /* SidebarView.swift */,
@@ -199,6 +204,9 @@
 			dependencies = (
 			);
 			name = Remote;
+			packageProductDependencies = (
+				J10000000000000000000002 /* SwiftTerm */,
+			);
 			productName = Relay;
 			productReference = B10000000000000000000011 /* Relay.app */;
 			productType = "com.apple.product-type.application";
@@ -249,6 +257,9 @@
 				Base,
 			);
 			mainGroup = D10000000000000000000002;
+			packageReferences = (
+				J10000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
 			productRefGroup = D10000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -297,6 +308,7 @@
 				A1000000000000000000000C /* MainView.swift in Sources */,
 				A1000000000000000000000D /* SessionView.swift in Sources */,
 				A1000000000000000000000E /* SidebarView.swift in Sources */,
+				A10000000000000000000016 /* EmbeddedSSHSessionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,12 +365,12 @@
 				DEVELOPMENT_TEAM = X9D4AP5HC8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_TESTABILITY = YES;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Remote/Relay-Info.plist;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.Relay;
+				PRODUCT_MODULE_NAME = Remote;
 				PRODUCT_NAME = Relay;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -373,12 +385,12 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = X9D4AP5HC8;
 				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Remote/Relay-Info.plist;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.williampburch.Relay;
+				PRODUCT_MODULE_NAME = Remote;
 				PRODUCT_NAME = Relay;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -446,6 +458,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		J10000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.17.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		J10000000000000000000002 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = J10000000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D10000000000000000000001 /* Project object */;
 }
